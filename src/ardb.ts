@@ -20,7 +20,7 @@ import {
  */
 export default class ArDB {
   private arweave: Arweave;
-  private reqType: RequestType;
+  private reqType: RequestType = 'transactions';
   private options: IGlobalOptions = {};
   private logs: number = 2;
   private after: string = '';
@@ -40,7 +40,7 @@ export default class ArDB {
    * Search is the first function called before doing a find.
    * @param col What type of search are we going to do.
    */
-  search(type: RequestType) {
+  search(type: RequestType = 'transactions') {
     this.reqType = type;
 
     this.options = {};
@@ -153,6 +153,7 @@ export default class ArDB {
 
   async find(filters: IGlobalOptions = {}) {
     this.checkSearchType();
+    
     for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
@@ -166,6 +167,7 @@ export default class ArDB {
   }
   async findOne(filters: IGlobalOptions = {}) {
     this.checkSearchType();
+
     for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
@@ -177,6 +179,7 @@ export default class ArDB {
 
   async findAll(filters: IGlobalOptions = {}) {
     this.checkSearchType();
+
     for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
