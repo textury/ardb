@@ -137,7 +137,7 @@ findOne(options: GlobalOptions = {})
  ```
  - Manually run and return all from a GQL query string.
 
- ## Defined types
+ ## Type declarations
  ```ts
  export interface IBlock {
   id?: string;
