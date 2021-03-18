@@ -149,10 +149,11 @@ export default class ArDB {
     return this;
   }
 
-  /** Ready to run **/
-  async find(filters?: IGlobalOptions) {
+  // Ready to run
+
+  async find(filters: IGlobalOptions = {}) {
     this.checkSearchType();
-    for (const filter in filters) {
+    for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
 
@@ -163,9 +164,9 @@ export default class ArDB {
     const query = this.construct();
     return this.run(query);
   }
-  async findOne(filters?: IGlobalOptions) {
+  async findOne(filters: IGlobalOptions = {}) {
     this.checkSearchType();
-    for (const filter in filters) {
+    for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
     this.options.first = 1;
@@ -174,9 +175,9 @@ export default class ArDB {
     return this.run(query);
   }
 
-  async findAll(filters?: IGlobalOptions) {
+  async findAll(filters: IGlobalOptions = {}) {
     this.checkSearchType();
-    for (const filter in filters) {
+    for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
     this.options.first = 100;
@@ -193,7 +194,10 @@ export default class ArDB {
       return;
     }
 
-    const query = this.construct().replace(this.afterRegex, `after: "${this.after}"`);
+    const query = this.construct().replace(
+      this.afterRegex,
+      `after: "${this.after}"`
+    );
     return this.run(query);
   }
 
@@ -268,14 +272,14 @@ export default class ArDB {
   }
 
   private async get(query: string): Promise<GQLResultInterface> {
-    const { data } = await this.arweave.api.post(
+    const res = await this.arweave.api.post(
       '/graphql',
       { query },
       { headers: { 'content-type': 'application/json' } }
     );
     this.log('Returned result: ');
-    this.log(data.data);
-    return data.data;
+    this.log(res.data.data);
+    return res.data.data;
   }
 
   private construct(): string {
@@ -290,7 +294,7 @@ export default class ArDB {
         delete this.options.block;
       }
 
-      if(!this.options.after) {
+      if (!this.options.after) {
         this.options.after = '';
       }
     } else {
@@ -408,7 +412,7 @@ export default class ArDB {
         break;
     }
 
-    if(!this.reqType || !params) {
+    if (!this.reqType || !params) {
       throw new Error('Invalid options. You need to first set your options!');
     }
 
