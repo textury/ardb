@@ -194,10 +194,7 @@ export default class ArDB {
       return;
     }
 
-    const query = this.construct().replace(
-      this.afterRegex,
-      `after: "${this.after}"`
-    );
+    const query = this.construct().replace(this.afterRegex, `after: "${this.after}"`);
     return this.run(query);
   }
 
@@ -272,11 +269,7 @@ export default class ArDB {
   }
 
   private async get(query: string): Promise<GQLResultInterface> {
-    const res = await this.arweave.api.post(
-      '/graphql',
-      { query },
-      { headers: { 'content-type': 'application/json' } }
-    );
+    const res = await this.arweave.api.post('/graphql', { query }, { headers: { 'content-type': 'application/json' } });
     this.log('Returned result: ');
     this.log(res.data.data);
     return res.data.data;
@@ -301,10 +294,7 @@ export default class ArDB {
       this.options = { id: this.options.id };
     }
 
-    let params: string = JSON.stringify(this.options, null, 2).replace(
-      /"([^"]+)":/gm,
-      '$1: '
-    );
+    let params: string = JSON.stringify(this.options, null, 2).replace(/"([^"]+)":/gm, '$1: ');
     params = params.substring(1, params.length - 1);
 
     let returnParams: string = '';
@@ -426,10 +416,7 @@ export default class ArDB {
   }
 
   private log(str: string) {
-    if (
-      this.logs === 1 ||
-      (this.logs === 2 && this.arweave.getConfig().api.logging)
-    ) {
+    if (this.logs === 1 || (this.logs === 2 && this.arweave.getConfig().api.logging)) {
       console.log(str);
     }
   }

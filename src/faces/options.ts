@@ -36,11 +36,7 @@ export interface IBlocksOptions {
   sort?: 'HEIGHT_DESC' | 'HEIGHT_ASC';
 }
 
-export interface IGlobalOptions
-  extends ITransactionOptions,
-    ITransactionsOptions,
-    IBlockOptions,
-    IBlocksOptions {}
+export interface IGlobalOptions extends ITransactionOptions, ITransactionsOptions, IBlockOptions, IBlocksOptions {}
 
 export type AmountType = string | { winston?: string; ar?: string }; // string = ar
 export type OwnerType = string | { address?: string; key?: string }; // string = address
