@@ -32,5 +32,10 @@ test('next', async () => {
 
 test('block', async () => {
   const block = await ardb.search('block').id('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_').findOne();
-  expect(block.id);
+  expect(block.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
+});
+
+test('blocks', async () => {
+  const res = await ardb.search('blocks').ids(['Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_']).findOne();
+  expect(res[0].node.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 });
