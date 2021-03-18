@@ -1,0 +1,4 @@
+{
+  "ponicode.testSettings.testLocation.locationType": "In folder __tests__ at workspace root",
+  "ponicode.testSettings.testLocation.path": "{rootDir}/__tests__/{filePath}/{fileName}.test.{ext}"
+}
