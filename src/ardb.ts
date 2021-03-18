@@ -153,7 +153,7 @@ export default class ArDB {
 
   async find(filters: IGlobalOptions = {}) {
     this.checkSearchType();
-    
+
     for (const filter of Object.keys(filters)) {
       this.options[filter] = filters[filter];
     }
