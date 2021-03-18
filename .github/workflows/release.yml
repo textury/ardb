@@ -1,0 +1,29 @@
+name: PreRelease
+on:
+  push: 
+    tags: 
+      - v*
+
+jobs: 
+  prerelase:
+    name: Pre Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.0.0
+
+      - name: Yarn Install
+        uses: bahmutov/npm-install@v1
+
+      - name: Build
+        run: yarn build
+
+      - name: Automatic Releases
+        uses: marvinpinto/action-automatic-releases@v1.1.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelase: false
+          files: |
+            dist/
+            LICENSE.txt
+            README.md
