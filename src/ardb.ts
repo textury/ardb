@@ -211,13 +211,21 @@ export default class ArDB {
       return res.transaction;
     } else if (res.block) {
       return res.block;
-    } else if (res.transactions) {
+    } else if (res.transactions || res.blocks) {
       const edges = res.transactions.edges;
-      this.after = edges[edges.length - 1].cursor;
+      if(edges && edges.length) {
+        this.after = edges[edges.length - 1].cursor;
+      } else {
+        this.after = '';
+      }
       return edges;
     } else if (res.blocks) {
       const edges = res.blocks.edges;
-      this.after = edges[edges.length - 1].cursor;
+      if(edges && edges.length) {
+        this.after = edges[edges.length - 1].cursor;
+      } else {
+        this.after = '';
+      }
       return edges;
     }
   }
