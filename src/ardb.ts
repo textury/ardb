@@ -351,6 +351,10 @@ export default class ArDB {
               anchor
               signature
               recipient
+              owner {
+                address
+                key
+              }
               fee {
                 winston
                 ar
