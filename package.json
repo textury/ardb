@@ -1,6 +1,6 @@
 {
   "name": "ardb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "lib/ardb.js",
   "repository": "https://github.com/cedriking/ardb.git",
   "author": "Cedrik <cedrik.git@tryninja.io>",
