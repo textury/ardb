@@ -128,6 +128,8 @@ export default class ArDB {
       this.options.block = {};
     }
     this.options.block.min = min;
+    
+    return this;
   }
 
   max(max: number) {
@@ -137,6 +139,8 @@ export default class ArDB {
       this.options.block = {};
     }
     this.options.block.max = max;
+    
+    return this;
   }
 
   limit(limit: number) {
