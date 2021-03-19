@@ -3,6 +3,7 @@ import ArDB from '../ardb';
 
 let ardb;
 beforeAll(async () => {
+  jest.setTimeout(100000);
   const arweave = Arweave.init({
     host: 'arweave.net',
     port: 443,
@@ -19,7 +20,10 @@ test('transaction', async () => {
 });
 
 test('transactions', async () => {
-  const res = await ardb.search('transactions').appName('SmartWeaveAction').tag('Type', 'ArweaveActivity').find();
+  let res = await ardb.search('transactions').appName('SmartWeaveAction').tag('Type', 'ArweaveActivity').find();
+  expect(res.length).toBe(10);
+
+  res = await ardb.search('transactions').tag('App-Name', 'SmartWeaveAction').find();
   expect(res.length).toBe(10);
 });
 
@@ -44,4 +48,8 @@ test('blocks', async () => {
     .ids(['Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_'])
     .findOne();
   expect(res[0].node.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
+
+  const blocks = await ardb.search('blocks').id('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T').findAll();
+  expect(blocks.length).toBe(1);
+  expect(blocks[0].node.id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
 });
