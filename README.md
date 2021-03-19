@@ -88,6 +88,12 @@ to(recipients: string|string[])
 - Search by using one (string), or a list (array of strings), of recipients.
 
 ```js
+min(min: number)
+max(max: number)
+```
+- Find transactions within a given block height range.
+
+```js
 limit(limit: number)
 ```
 - Limit the search to the `limit`. Default is `10`.
