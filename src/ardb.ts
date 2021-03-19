@@ -124,7 +124,7 @@ export default class ArDB {
   min(min: number) {
     this.checkSearchType();
 
-    if(!this.options.block) {
+    if (!this.options.block) {
       this.options.block = {};
     }
     this.options.block.min = min;
@@ -133,7 +133,7 @@ export default class ArDB {
   max(max: number) {
     this.checkSearchType();
 
-    if(!this.options.block) {
+    if (!this.options.block) {
       this.options.block = {};
     }
     this.options.block.max = max;
@@ -229,9 +229,9 @@ export default class ArDB {
       return res.transaction;
     } else if (res.block) {
       return res.block;
-    } else if (res.transactions || res.blocks) {
+    } else if (res.transactions) {
       const edges = res.transactions.edges;
-      if(edges && edges.length) {
+      if (edges && edges.length) {
         this.after = edges[edges.length - 1].cursor;
       } else {
         this.after = '';
@@ -239,7 +239,7 @@ export default class ArDB {
       return edges;
     } else if (res.blocks) {
       const edges = res.blocks.edges;
-      if(edges && edges.length) {
+      if (edges && edges.length) {
         this.after = edges[edges.length - 1].cursor;
       } else {
         this.after = '';

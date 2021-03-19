@@ -49,7 +49,10 @@ test('blocks', async () => {
     .findOne();
   expect(res[0].node.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 
-  const blocks = await ardb.search('blocks').id('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T').findAll();
+  const blocks = await ardb
+    .search('blocks')
+    .id('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T')
+    .findAll();
   expect(blocks.length).toBe(1);
   expect(blocks[0].node.id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
 });
