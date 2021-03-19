@@ -121,6 +121,24 @@ export default class ArDB {
     return this;
   }
 
+  min(min: number) {
+    this.checkSearchType();
+
+    if(!this.options.block) {
+      this.options.block = {};
+    }
+    this.options.block.min = min;
+  }
+
+  max(max: number) {
+    this.checkSearchType();
+
+    if(!this.options.block) {
+      this.options.block = {};
+    }
+    this.options.block.max = max;
+  }
+
   limit(limit: number) {
     this.checkSearchType();
 
