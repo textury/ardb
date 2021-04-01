@@ -1,4 +1,5 @@
 import Arweave from 'arweave';
+import { fieldType } from './faces/fields';
 import GQLResultInterface, {
   GQLBlocksInterface,
   GQLEdgeBlockInterface,
@@ -24,7 +25,38 @@ export default class ArDB {
   private options: IGlobalOptions = {};
   private logs: number = 2;
   private after: string = '';
-  private afterRegex = /after: *"([^"]*)"/gi;
+  private readonly afterRegex = /after: *"([^"]*)"/gi;
+  private readonly emptyLinesRegex = /^\s*[\r\n]/gm;
+  private readonly fields: fieldType[] = [
+    'id',
+    'anchor',
+    'signature',
+    'recipient',
+    'owner',
+    'owner.address',
+    'owner.key',
+    'fee',
+    'fee.winston',
+    'fee.ar',
+    'quantity',
+    'quantity.winston',
+    'quantity.ar',
+    'data',
+    'data.size',
+    'data.type',
+    'tags',
+    'tags.name',
+    'tags.value',
+    'block',
+    'block.id',
+    'block.timestamp',
+    'block.height',
+    'block.previous',
+    'parent',
+    'parent.id',
+  ];
+
+  private includes: Set<fieldType> = new Set();
 
   /**
    *
@@ -34,11 +66,13 @@ export default class ArDB {
   constructor(arweave: Arweave, logs: number = 2) {
     this.arweave = arweave;
     this.logs = logs;
+
+    this.includes = new Set(this.fields);
   }
 
   /**
    * Search is the first function called before doing a find.
-   * @param col What type of search are we going to do.
+   * @param type What type of search are we going to do.
    */
   search(type: RequestType = 'transactions') {
     this.reqType = type;
@@ -168,6 +202,49 @@ export default class ArDB {
     this.checkSearchType();
     this.options.after = after;
 
+    return this;
+  }
+
+  only(fields: fieldType | fieldType[]) {
+    // Empty the included fields.
+    this.includes = new Set();
+
+    if (typeof fields === 'string' && this.fields.indexOf(fields) !== -1) {
+      this.includes.add(fields);
+      return this;
+    }
+
+    const toInclude: fieldType[] = [];
+    for (const field of fields) {
+      // @ts-ignore
+      if (this.fields.indexOf(field) !== -1) {
+        // @ts-ignore
+        toInclude.push(field);
+      }
+    }
+
+    if (toInclude.length) {
+      this.includes = new Set(toInclude);
+    }
+
+    this.validateIncludes();
+    return this;
+  }
+
+  exclude(fields: fieldType | fieldType[]) {
+    // To make only() and exclude() work the same, re-add all fields to includes.
+    this.includes = new Set(this.fields);
+
+    if (typeof fields === 'string') {
+      this.includes.delete(fields);
+      return this;
+    }
+
+    for (const field of fields) {
+      this.includes.delete(field);
+    }
+
+    this.validateIncludes();
     return this;
   }
 
@@ -330,113 +407,146 @@ export default class ArDB {
     let params: string = JSON.stringify(this.options, null, 2).replace(/"([^"]+)":/gm, '$1: ');
     params = params.substring(1, params.length - 1);
 
-    let returnParams: string = '';
-    switch (this.reqType) {
-      case 'transaction':
-        returnParams = `
+    let fields: string = '';
+    if (this.reqType === 'transaction' || this.reqType === 'transactions') {
+      let owner = '';
+      if (this.includes.has('owner')) {
+        owner = `owner {
+          ${this.includes.has('owner.address') ? 'address' : ''}
+          ${this.includes.has('owner.key') ? 'key' : ''}
+        }`;
+      }
+
+      let fee = '';
+      if (this.includes.has('fee')) {
+        fee = `fee {
+          ${this.includes.has('fee.winston') ? 'winston' : ''}
+          ${this.includes.has('fee.ar') ? 'ar' : ''}
+        }`;
+      }
+
+      let quantity = '';
+      if (this.includes.has('quantity')) {
+        quantity = `quantity {
+          ${this.includes.has('quantity.winston') ? 'winston' : ''}
+          ${this.includes.has('quantity.ar') ? 'ar' : ''}
+        }`;
+      }
+
+      let data = '';
+      if (this.includes.has('data')) {
+        data = `data {
+          ${this.includes.has('data.size') ? 'size' : ''}
+          ${this.includes.has('data.type') ? 'type' : ''}
+        }`;
+      }
+
+      let tags = '';
+      if (this.includes.has('tags')) {
+        tags = `tags {
+          ${this.includes.has('tags.name') ? 'name' : ''}
+          ${this.includes.has('tags.value') ? 'value' : ''}
+        }`;
+      }
+
+      let block = '';
+      if (this.includes.has('block')) {
+        block = `block {
+          ${this.includes.has('block.id') ? 'id' : ''}
+          ${this.includes.has('block.timestamp') ? 'timestamp' : ''}
+          ${this.includes.has('block.height') ? 'height' : ''}
+          ${this.includes.has('block.previous') ? 'previous' : ''}
+        }`;
+      }
+
+      let parent = '';
+      if (this.includes.has('parent') || this.includes.has('parent.id')) {
+        // Parent only has an ID, so if one of them is included, add both.
+        parent = `parent {
           id
-          anchor
-          signature
-          recipient
-          owner {
-            address
-            key
-          }
-          fee {
-            winston
-            ar
-          }
-          quantity {
-            winston
-            ar
-          }
-          data {
-            size
-            type
-          }
-          tags {
-            name,
-            value
-          }
-          block {
-            id
-            timestamp
-            height
-            previous
-          }
-          parent {
-            id
-          }`;
-        break;
+        }`;
+      }
 
-      case 'transactions':
-        returnParams = `
-          pageInfo {
-            hasNextPage
-          }
-          edges { 
-            cursor
-            node { 
-              id
-              anchor
-              signature
-              recipient
-              owner {
-                address
-                key
-              }
-              fee {
-                winston
-                ar
-              }
-              quantity {
-                winston
-                ar
-              }
-              data {
-                size
-                type
-              }
-              tags {
-                name
-                value
-              }
-              block {
-                id
-                timestamp
-                height
-                previous
-              }
-              parent {
-                id
-              }
-            } 
-          }`;
-        break;
+      fields = `
+      ${this.includes.has('id') ? 'id' : ''}
+      ${this.includes.has('anchor') ? 'anchor' : ''}
+      ${this.includes.has('signature') ? 'signature' : ''}
+      ${this.includes.has('recipient') ? 'recipient' : ''}
+      ${owner}
+      ${fee}
+      ${quantity}
+      ${data}
+      ${tags}
+      ${block}
+      ${parent}
+      `;
 
-      case 'block':
-        returnParams = `
+      fields = fields.replace(this.emptyLinesRegex, '').trim();
+      if (!fields.length) {
+        fields = `
+        id
+        anchor
+        signature
+        recipient
+        owner {
+          address
+          key
+        }
+        fee {
+          winston
+          ar
+        }
+        quantity {
+          winston
+          ar
+        }
+        data {
+          size
+          type
+        }
+        tags {
+          name
+          value
+        }
+        block {
           id
           timestamp
           height
-          previous`;
-        break;
+          previous
+        }
+        parent {
+          id
+        }`;
+      }
+    } else {
+      fields = `
+      ${this.includes.has('block.id') ? 'id' : ''}
+      ${this.includes.has('block.timestamp') ? 'timestamp' : ''}
+      ${this.includes.has('block.height') ? 'height' : ''}
+      ${this.includes.has('block.previous') ? 'previous' : ''}
+      `;
 
-      case 'blocks':
-        returnParams = `
-          pageInfo {
-            hasNextPage
-          }
-          edges {
-            cursor
-            node {
-              id
-              timestamp
-              height
-              previous
-            }
-          }`;
-        break;
+      fields = fields.replace(this.emptyLinesRegex, '').trim();
+      if (!fields.length) {
+        fields = `
+        id
+        timestamp
+        height
+        previous`;
+      }
+    }
+
+    if (this.reqType === 'transactions' || this.reqType === 'blocks') {
+      fields = `
+      pageInfo {
+        hasNextPage
+      }
+      edges { 
+        cursor
+        node { 
+          ${fields}
+        } 
+      }`;
     }
 
     if (!this.reqType || !params) {
@@ -447,7 +557,7 @@ export default class ArDB {
       ${this.reqType}(
         ${params}
       ){
-        ${returnParams}
+        ${fields}
       }
     }`;
   }
@@ -455,6 +565,61 @@ export default class ArDB {
   private log(str: string) {
     if (this.logs === 1 || (this.logs === 2 && this.arweave.getConfig().api.logging)) {
       console.log(str);
+    }
+  }
+
+  private validateIncludes() {
+    // Add all children if all of them are missing but a parent is present.
+    if (this.includes.has('owner') && !this.includes.has('owner.address') && !this.includes.has('owner.key')) {
+      this.includes.add('owner.address');
+      this.includes.add('owner.key');
+    } else if (this.includes.has('fee') && !this.includes.has('fee.winston') && !this.includes.has('fee.ar')) {
+      this.includes.add('fee.winston');
+      this.includes.add('fee.ar');
+    } else if (
+      this.includes.has('quantity') &&
+      !this.includes.has('quantity.winston') &&
+      !this.includes.has('quantity.ar')
+    ) {
+      this.includes.add('quantity.winston');
+      this.includes.add('quantity.ar');
+    } else if (this.includes.has('data') && !this.includes.has('data.size') && !this.includes.has('data.type')) {
+      this.includes.add('data.size');
+      this.includes.add('data.type');
+    } else if (this.includes.has('tags') && !this.includes.has('tags.name') && !this.includes.has('tags.value')) {
+      this.includes.add('tags.name');
+      this.includes.add('tags.value');
+    } else if (
+      this.includes.has('block') &&
+      !this.includes.has('block.timestamp') &&
+      !this.includes.has('block.height') &&
+      !this.includes.has('block.previous')
+    ) {
+      this.includes.add('block.id');
+      this.includes.add('block.timestamp');
+      this.includes.add('block.height');
+      this.includes.add('block.previous');
+    }
+
+    // Add a parent if one of the children is present but the parent is not
+    if (!this.includes.has('owner') && (this.includes.has('owner.address') || this.includes.has('owner.key'))) {
+      this.includes.add('owner');
+    } else if (!this.includes.has('fee') && (this.includes.has('fee.winston') || this.includes.has('fee.ar'))) {
+      this.includes.add('fee');
+    } else if (
+      !this.includes.has('quantity') &&
+      (this.includes.has('quantity.winston') || this.includes.has('quantity.ar'))
+    ) {
+      this.includes.add('quantity');
+    } else if (!this.includes.has('data') && (this.includes.has('data.size') || this.includes.has('data.type'))) {
+      this.includes.add('data');
+    } else if (!this.includes.has('tags') && (this.includes.has('tags.name') || this.includes.has('tags.value'))) {
+      this.includes.add('tags');
+    } else if (
+      !this.includes.has('block') &&
+      (this.includes.has('block.timestamp') || this.includes.has('block.height') || this.includes.has('block.previous'))
+    ) {
+      this.includes.add('block');
     }
   }
 }

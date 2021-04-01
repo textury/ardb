@@ -94,6 +94,16 @@ max(max: number)
 - Find transactions within a given block height range.
 
 ```js
+only(fields: string|string[])
+```
+- Only return the specified return fields from your GQL query.
+
+```js
+exclude(fields: string|string[])
+```
+- Excludes the specified return fields from your GQL query.
+
+```js
 limit(limit: number)
 ```
 - Limit the search to the `limit`. Default is `10`.

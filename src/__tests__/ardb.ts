@@ -56,3 +56,53 @@ test('blocks', async () => {
   expect(blocks.length).toBe(1);
   expect(blocks[0].node.id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
 });
+
+test('only', async () => {
+  const res = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only('id')
+    .findOne();
+  expect(res.length).toBe(1);
+  expect(res[0].node).toHaveProperty('id');
+  expect(Object.keys(res[0].node).length).toBe(1);
+
+  const res2 = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only(['id', 'owner.address'])
+    .findOne();
+  expect(res2.length).toBe(1);
+  expect(res2[0].node).toHaveProperty('id');
+  expect(Object.keys(res2[0].node).length).toBe(2);
+  expect(res2[0].node.owner).toHaveProperty('address');
+  expect(Object.keys(res2[0].node.owner).length).toBe(1);
+});
+
+test('exclude', async () => {
+  const res = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .exclude('id')
+    .findOne();
+  expect(res.length).toBe(1);
+  expect(res[0].node).not.toHaveProperty('id');
+  expect(res[0].node).toHaveProperty('anchor');
+  expect(res[0].node).toHaveProperty('signature');
+  expect(Object.keys(res[0].node).length).toBe(10);
+
+  const res2 = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .exclude(['id', 'owner.address'])
+    .findOne();
+  expect(res2.length).toBe(1);
+  expect(Object.keys(res2[0].node).length).toBe(10);
+  expect(res2[0].node).not.toHaveProperty('id');
+  expect(res2[0].node.owner).not.toHaveProperty('address');
+  expect(res2[0].node.owner).toHaveProperty('key');
+});
