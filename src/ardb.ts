@@ -335,6 +335,9 @@ export default class ArDB {
     let cursor = this.options.after || '';
 
     while (hasNextPage) {
+      this.log('Running query:');
+      this.log(query);
+
       const res: GQLResultInterface = await this.get(query);
 
       if (res.transaction) {
