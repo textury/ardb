@@ -379,7 +379,7 @@ export default class ArDB {
   }
 
   private async get(query: string): Promise<GQLResultInterface> {
-    const res = await this.arweave.api.post('/graphql', { query }, { headers: { 'content-type': 'application/json' } });
+    const res = await this.arweave.api.post('graphql', { query }, { headers: { 'content-type': 'application/json' } });
     this.log('Returned result: ');
     this.log(res.data.data);
     return res.data.data;
