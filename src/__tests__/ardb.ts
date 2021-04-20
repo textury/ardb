@@ -106,3 +106,25 @@ test('exclude', async () => {
   expect(res2[0].node.owner).not.toHaveProperty('address');
   expect(res2[0].node.owner).toHaveProperty('key');
 });
+
+test('order', async () => {
+  let res = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only('id')
+    .sort('HEIGHT_ASC')
+    .find();
+
+  expect(res[0].node.id).toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
+
+  res = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only('id')
+    .sort('HEIGHT_DESC')
+    .find();
+
+  expect(res[0].node.id).not.toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
+});

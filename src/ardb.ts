@@ -407,7 +407,10 @@ export default class ArDB {
       this.options = { id: this.options.id };
     }
 
-    let params: string = JSON.stringify(this.options, null, 2).replace(/"([^"]+)":/gm, '$1: ');
+    let params: string = JSON.stringify(this.options, null, 2)
+      .replace(/"([^"]+)":/gm, '$1: ')
+      .replace('"HEIGHT_DESC"', 'HEIGHT_DESC')
+      .replace('"HEIGHT_ASC"', 'HEIGHT_ASC');
     params = params.substring(1, params.length - 1);
 
     let fields: string = '';
