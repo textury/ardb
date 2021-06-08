@@ -17,6 +17,11 @@ Import it into your project file:
 import ArDB from 'ardb';
 ```
 
+Initialisation
+```js
+// arweave is Arweave Client instance
+const ardb = new ArDB(arweave);
+```
 And now we are ready to play with it!
 
 Examples:
