@@ -114,3 +114,25 @@ test('empty result', async () => {
 
   expect(txs.length).toBe(0);
 });
+
+test('order', async () => {
+  let txs = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only('id')
+    .sort('HEIGHT_ASC')
+    .find();
+
+  expect(txs[0].id).toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
+
+  txs = await ardb
+    .search('transactions')
+    .appName('SmartWeaveAction')
+    .tag('Type', 'ArweaveActivity')
+    .only('id')
+    .sort('HEIGHT_DESC')
+    .find();
+
+  expect(txs[0].id).not.toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
+});

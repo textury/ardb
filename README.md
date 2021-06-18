@@ -18,6 +18,11 @@ import ArDB from '@textury/ardb';
 const ardb = new ArDB(arweaveInstance, logLevel? = LOG.ARWEAVE); // logLevel is optional and respects Arweave's logging by default.
 ```
 
+Initialisation
+```js
+// arweave is Arweave Client instance
+const ardb = new ArDB(arweave);
+```
 And now we are ready to play with it!
 
 Examples:
