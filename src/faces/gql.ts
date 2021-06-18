@@ -40,9 +40,7 @@ export interface GQLTransactionInterface {
   data: GQLMetaDataInterface;
   tags: GQLTagInterface[];
   block: GQLBlockInterface;
-  parent: {
-    id: string;
-  };
+  parent: { id: string };
 }
 
 export interface GQLEdgeTransactionInterface {
@@ -60,7 +58,7 @@ export interface GQLTransactionsResultInterface {
   edges: GQLEdgeTransactionInterface[];
 }
 
-export interface GQLBlocksInterface {
+export interface GQLBlocksResultInterface {
   pageInfo: GQLPageInfoInterface;
   edges: GQLEdgeBlockInterface[];
 }
@@ -69,5 +67,5 @@ export default interface GQLResultInterface {
   transaction: GQLTransactionInterface;
   transactions: GQLTransactionsResultInterface;
   block: GQLBlockInterface;
-  blocks: GQLBlocksInterface;
+  blocks: GQLBlocksResultInterface;
 }

@@ -1,19 +1,10 @@
 import Arweave from 'arweave';
 import { fieldType } from './faces/fields';
-import GQLResultInterface, {
-  GQLBlocksInterface,
-  GQLEdgeBlockInterface,
-  GQLEdgeTransactionInterface,
-  GQLTransactionsResultInterface,
-} from './faces/gql';
-import {
-  IBlockOptions,
-  IBlocksOptions,
-  IGlobalOptions,
-  ITransactionOptions,
-  ITransactionsOptions,
-  RequestType,
-} from './faces/options';
+import GQLResultInterface, { GQLEdgeBlockInterface, GQLEdgeTransactionInterface } from './faces/gql';
+import { IGlobalOptions, RequestType } from './faces/options';
+import { Block } from './models/block';
+import { Transaction } from './models/transaction';
+import { Log, log, LOGS } from './utils/log';
 
 /**
  * Arweave as a database.
@@ -23,8 +14,8 @@ export default class ArDB {
   private arweave: Arweave;
   private reqType: RequestType = 'transactions';
   private options: IGlobalOptions = {};
-  private logs: number = 2;
   private after: string = '';
+
   private readonly afterRegex = /after: *"([^"]*)"/gi;
   private readonly emptyLinesRegex = /^\s*[\r\n]/gm;
   private readonly fields: fieldType[] = [
@@ -58,23 +49,34 @@ export default class ArDB {
 
   private includes: Set<fieldType> = new Set();
 
+  private log: Log;
+
   /**
    *
    * @param arweave An arweave instance
-   * @param logs Show logs. 0 = false, 1 = true, 2 = if arweave instance has log enabled.
+   * @param logLevel Show logs. 0 = false, 1 = true, 2 = if arweave instance has log enabled.
    */
-  constructor(arweave: Arweave, logs: number = 2) {
+  constructor(arweave: Arweave, logLevel: LOGS = LOGS.ARWEAVE) {
     this.arweave = arweave;
-    this.logs = logs;
+    log.init(logLevel, arweave);
 
     this.includes = new Set(this.fields);
   }
 
   /**
+   * Get the current cursor (also known as `after`) in case you need to do extra manual work with it.
+   * @returns cursor
+   */
+  getCursor(): string {
+    return this.after;
+  }
+
+  /**
    * Search is the first function called before doing a find.
    * @param type What type of search are we going to do.
+   * @returns ardb
    */
-  search(type: RequestType = 'transactions') {
+  search(type: RequestType = 'transactions'): ArDB {
     this.reqType = type;
 
     this.options = {};
@@ -83,14 +85,25 @@ export default class ArDB {
     return this;
   }
 
-  id(id: string) {
+  /**
+   * Get transactions or blocks by transaction ID.
+   * @param id The transaction/block ID.
+   * @returns ardb
+   */
+  id(id: string): ArDB {
     this.checkSearchType();
     this.options.id = id;
     this.options.ids = [id];
 
     return this;
   }
-  ids(ids: string[]) {
+
+  /**
+   * Get transactions or blocks by transaction IDs.
+   * @param ids A list of transactions/blocks IDs.
+   * @returns ardb
+   */
+  ids(ids: string[]): ArDB {
     this.checkSearchType();
     this.options.ids = ids;
     this.options.id = ids[0];
@@ -98,28 +111,59 @@ export default class ArDB {
     return this;
   }
 
-  appName(name: string) {
+  /**
+   * Get transaction(s) per tag App-Name = name.
+   * @param name The App-Name value as string.
+   * @returns ardb
+   */
+  appName(name: string): ArDB {
     this.checkSearchType();
     this.tag('App-Name', [name]);
 
     return this;
   }
 
-  type(type: string) {
+  /**
+   * Get transaction(s) with the tag Content-Type = type.
+   * @param type Content-Type as string.
+   * @returns ardb
+   */
+  type(type: string): ArDB {
     this.checkSearchType();
     this.tag('Content-Type', [type]);
 
     return this;
   }
 
-  tags(tags: { name: string; values: string[] }[]) {
+  /**
+   * Get transaction(s) by a list of tags
+   * @param tags Array of objects with name (string) and values (array|string)
+   * @returns ardb
+   */
+  tags(tags: { name: string; values: string[] | string }[]): ArDB {
     this.checkSearchType();
-    this.options.tags = tags;
 
+    const ts: { name: string; values: string[] }[] = [];
+
+    for (const tag of tags) {
+      const values: string[] = typeof tag.values === 'string' ? [tag.values] : tag.values;
+      ts.push({
+        name: tag.name,
+        values,
+      });
+    }
+
+    this.options.tags = ts;
     return this;
   }
 
-  tag(name: string, values: string | string[]) {
+  /**
+   * Get transaction(s) by this specific tag, if previous ones exists it will be added to the list of tags.
+   * @param name The tag name, ex: App-Name.
+   * @param values The tag value or an array of values.
+   * @returns ardb
+   */
+  tag(name: string, values: string | string[]): ArDB {
     this.checkSearchType();
 
     if (!this.options.tags) {
@@ -133,7 +177,12 @@ export default class ArDB {
     return this;
   }
 
-  from(owners: string | string[]) {
+  /**
+   * Get transaction(s) by owner(s).
+   * @param owners Owner address or a list of owners.
+   * @returns ardb
+   */
+  from(owners: string | string[]): ArDB {
     this.checkSearchType();
 
     if (typeof owners === 'string') {
@@ -144,7 +193,12 @@ export default class ArDB {
     return this;
   }
 
-  to(recipients: string | string[]) {
+  /**
+   * Get transaction(s) by recipient(s).
+   * @param recipients A recipient address or a list of recipients.
+   * @returns ardb
+   */
+  to(recipients: string | string[]): ArDB {
     this.checkSearchType();
 
     if (typeof recipients === 'string') {
@@ -155,7 +209,12 @@ export default class ArDB {
     return this;
   }
 
-  min(min: number) {
+  /**
+   * Get blocks with the min height.
+   * @param min The minimum height for the search.
+   * @returns ardb
+   */
+  min(min: number): ArDB {
     this.checkSearchType();
 
     if (!this.options.block) {
@@ -166,7 +225,12 @@ export default class ArDB {
     return this;
   }
 
-  max(max: number) {
+  /**
+   * Get blocks by a max height.
+   * @param max The maximum height for the search.
+   * @returns ardb
+   */
+  max(max: number): ArDB {
     this.checkSearchType();
 
     if (!this.options.block) {
@@ -177,7 +241,12 @@ export default class ArDB {
     return this;
   }
 
-  limit(limit: number) {
+  /**
+   * Limits the returned results, this only works with `find()`, `findOne()` will always have a limit of 1, and `findAll()` has no limit.
+   * @param limit A number between 1 and 100.
+   * @returns ardb
+   */
+  limit(limit: number): ArDB {
     this.checkSearchType();
 
     if (limit < 1) {
@@ -192,25 +261,42 @@ export default class ArDB {
     return this;
   }
 
-  sort(sort: 'HEIGHT_DESC' | 'HEIGHT_ASC') {
+  /**
+   * Sort blocks or transactions by DESC or ASC.
+   * @param sort HEIGHT_DESC or HEIGHT_ASC.
+   * @returns ardb
+   */
+  sort(sort: 'HEIGHT_DESC' | 'HEIGHT_ASC'): ArDB {
     this.options.sort = sort;
 
     return this;
   }
 
-  cursor(after: string) {
+  /**
+   * Set a cursor for when to get started.
+   * @param after The cursor string.
+   * @returns ardb
+   */
+  cursor(after: string): ArDB {
     this.checkSearchType();
     this.options.after = after;
 
     return this;
   }
 
-  only(fields: fieldType | fieldType[]) {
+  /**
+   * Returns only the specified fields for block(s) or transaction(s).
+   * @param fields The field or list of fields to return.
+   * @returns ardb
+   */
+  only(fields: fieldType | fieldType[]): ArDB {
     // Empty the included fields.
     this.includes = new Set();
 
     if (typeof fields === 'string' && this.fields.indexOf(fields) !== -1) {
       this.includes.add(fields);
+      this.validateIncludes();
+
       return this;
     }
 
@@ -231,12 +317,18 @@ export default class ArDB {
     return this;
   }
 
-  exclude(fields: fieldType | fieldType[]) {
+  /**
+   * Exclude fields from the returned results.
+   * @param fields A field or list of fields to exclude.
+   * @returns ardb
+   */
+  exclude(fields: fieldType | fieldType[]): ArDB {
     // To make only() and exclude() work the same, re-add all fields to includes.
     this.includes = new Set(this.fields);
 
     if (typeof fields === 'string') {
       this.includes.delete(fields);
+      this.validateIncludes();
       return this;
     }
 
@@ -250,7 +342,12 @@ export default class ArDB {
 
   // Ready to run
 
-  async find(filters: IGlobalOptions = {}) {
+  /**
+   * Find a list of blocks or transactions based on the specified search filters.
+   * @param filters Optional. You can manually add the filters here instead of using our search methods.
+   * @returns A list of transactions or blocks.
+   */
+  async find(filters: IGlobalOptions = {}): Promise<Transaction[] | Block[]> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -264,7 +361,13 @@ export default class ArDB {
     const query = this.construct();
     return this.run(query);
   }
-  async findOne(filters: IGlobalOptions = {}) {
+
+  /**
+   * Find a single
+   * @param filters
+   * @returns
+   */
+  async findOne(filters: IGlobalOptions = {}): Promise<Transaction | Block> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -273,10 +376,11 @@ export default class ArDB {
     this.options.first = 1;
 
     const query = this.construct();
-    return this.run(query);
+    const txs = await this.run(query);
+    return txs.length ? txs[0] : null;
   }
 
-  async findAll(filters: IGlobalOptions = {}) {
+  async findAll(filters: IGlobalOptions = {}): Promise<Transaction[] | Block[]> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -290,26 +394,30 @@ export default class ArDB {
   /**
    * To run with the cursor
    */
-  async next() {
+  async next(): Promise<Transaction | Block | Transaction[] | Block[]> {
     if (!this.after || !this.after.length) {
-      console.warn('next(): Nothing more to search.');
+      log.show('next(): Nothing more to search.');
       return;
     }
 
     const query = this.construct().replace(this.afterRegex, `after: "${this.after}"`);
-    return this.run(query);
+    const result = await this.run(query);
+
+    return this.options.first === 1 ? (result.length ? result[0] : null) : result;
   }
 
-  async run(query: string) {
-    this.log('Running query:');
-    this.log(query);
+  async run(query: string): Promise<Transaction[] | Block[]> {
+    log.show('Running query:');
+    log.show(query);
 
     const res: GQLResultInterface = await this.get(query);
 
+    if (!res) return [];
+
     if (res.transaction) {
-      return res.transaction;
+      return [new Transaction(res.transaction, this.arweave)];
     } else if (res.block) {
-      return res.block;
+      return [new Block(res.block)];
     } else if (res.transactions) {
       const edges = res.transactions.edges;
       if (edges && edges.length) {
@@ -317,7 +425,7 @@ export default class ArDB {
       } else {
         this.after = '';
       }
-      return edges;
+      return edges.map((edge) => new Transaction(edge.node, this.arweave));
     } else if (res.blocks) {
       const edges = res.blocks.edges;
       if (edges && edges.length) {
@@ -325,22 +433,27 @@ export default class ArDB {
       } else {
         this.after = '';
       }
-      return edges;
+      return edges.map((edge) => new Block(edge.node));
     }
   }
 
-  async runAll(query: string) {
+  async runAll(query: string): Promise<Transaction[] | Block[]> {
     let hasNextPage: boolean = true;
-    let edges: any[] = [];
+    let edges: (GQLEdgeTransactionInterface | GQLEdgeBlockInterface)[] = [];
     let cursor = this.options.after || '';
+    let isTx: boolean = true;
 
     while (hasNextPage) {
       const res: GQLResultInterface = await this.get(query);
 
+      if (!res) {
+        return [];
+      }
+
       if (res.transaction) {
-        return res.transaction;
+        return [new Transaction(res.transaction, this.arweave)];
       } else if (res.block) {
-        return res.block;
+        return [new Block(res.block)];
       } else if (res.transactions) {
         const r = res.transactions;
         if (r.edges && r.edges.length) {
@@ -350,6 +463,8 @@ export default class ArDB {
         }
         hasNextPage = r.pageInfo.hasNextPage;
       } else if (res.blocks) {
+        isTx = false;
+
         const r = res.blocks;
         if (r.edges && r.edges.length) {
           edges = edges.concat(r.edges);
@@ -360,7 +475,11 @@ export default class ArDB {
       }
     }
 
-    return edges;
+    if (isTx) {
+      return edges.map((edge) => new Transaction(edge.node, this.arweave));
+    } else {
+      return edges.map((edge) => new Block(edge.node));
+    }
   }
 
   /** Helpers */
@@ -379,9 +498,9 @@ export default class ArDB {
   }
 
   private async get(query: string): Promise<GQLResultInterface> {
-    const res = await this.arweave.api.post('/graphql', { query }, { headers: { 'content-type': 'application/json' } });
-    this.log('Returned result: ');
-    this.log(res.data.data);
+    const res = await this.arweave.api.post('graphql', { query }, { headers: { 'content-type': 'application/json' } });
+    log.show('Returned result: ');
+    log.show(res.data.data);
     return res.data.data;
   }
 
@@ -562,34 +681,34 @@ export default class ArDB {
     }`;
   }
 
-  private log(str: string) {
-    if (this.logs === 1 || (this.logs === 2 && this.arweave.getConfig().api.logging)) {
-      console.log(str);
-    }
-  }
-
   private validateIncludes() {
     // Add all children if all of them are missing but a parent is present.
     if (this.includes.has('owner') && !this.includes.has('owner.address') && !this.includes.has('owner.key')) {
       this.includes.add('owner.address');
       this.includes.add('owner.key');
-    } else if (this.includes.has('fee') && !this.includes.has('fee.winston') && !this.includes.has('fee.ar')) {
+    }
+
+    if (this.includes.has('fee') && !this.includes.has('fee.winston') && !this.includes.has('fee.ar')) {
       this.includes.add('fee.winston');
       this.includes.add('fee.ar');
-    } else if (
-      this.includes.has('quantity') &&
-      !this.includes.has('quantity.winston') &&
-      !this.includes.has('quantity.ar')
-    ) {
+    }
+
+    if (this.includes.has('quantity') && !this.includes.has('quantity.winston') && !this.includes.has('quantity.ar')) {
       this.includes.add('quantity.winston');
       this.includes.add('quantity.ar');
-    } else if (this.includes.has('data') && !this.includes.has('data.size') && !this.includes.has('data.type')) {
+    }
+
+    if (this.includes.has('data') && !this.includes.has('data.size') && !this.includes.has('data.type')) {
       this.includes.add('data.size');
       this.includes.add('data.type');
-    } else if (this.includes.has('tags') && !this.includes.has('tags.name') && !this.includes.has('tags.value')) {
+    }
+
+    if (this.includes.has('tags') && !this.includes.has('tags.name') && !this.includes.has('tags.value')) {
       this.includes.add('tags.name');
       this.includes.add('tags.value');
-    } else if (
+    }
+
+    if (
       this.includes.has('block') &&
       !this.includes.has('block.timestamp') &&
       !this.includes.has('block.height') &&
@@ -604,18 +723,25 @@ export default class ArDB {
     // Add a parent if one of the children is present but the parent is not
     if (!this.includes.has('owner') && (this.includes.has('owner.address') || this.includes.has('owner.key'))) {
       this.includes.add('owner');
-    } else if (!this.includes.has('fee') && (this.includes.has('fee.winston') || this.includes.has('fee.ar'))) {
+    }
+
+    if (!this.includes.has('fee') && (this.includes.has('fee.winston') || this.includes.has('fee.ar'))) {
       this.includes.add('fee');
-    } else if (
-      !this.includes.has('quantity') &&
-      (this.includes.has('quantity.winston') || this.includes.has('quantity.ar'))
-    ) {
+    }
+
+    if (!this.includes.has('quantity') && (this.includes.has('quantity.winston') || this.includes.has('quantity.ar'))) {
       this.includes.add('quantity');
-    } else if (!this.includes.has('data') && (this.includes.has('data.size') || this.includes.has('data.type'))) {
+    }
+
+    if (!this.includes.has('data') && (this.includes.has('data.size') || this.includes.has('data.type'))) {
       this.includes.add('data');
-    } else if (!this.includes.has('tags') && (this.includes.has('tags.name') || this.includes.has('tags.value'))) {
+    }
+
+    if (!this.includes.has('tags') && (this.includes.has('tags.name') || this.includes.has('tags.value'))) {
       this.includes.add('tags');
-    } else if (
+    }
+
+    if (
       !this.includes.has('block') &&
       (this.includes.has('block.timestamp') || this.includes.has('block.height') || this.includes.has('block.previous'))
     ) {

@@ -1,7 +1,10 @@
 import Arweave from 'arweave';
 import ArDB from '../ardb';
+import { Block } from '../models/block';
+import { Transaction } from '../models/transaction';
+import { LOGS } from '../utils/log';
 
-let ardb;
+let ardb: ArDB;
 beforeAll(async () => {
   jest.setTimeout(100000);
   const arweave = Arweave.init({
@@ -9,12 +12,12 @@ beforeAll(async () => {
     port: 443,
     protocol: 'https',
   });
-  ardb = new ArDB(arweave, 0);
+  ardb = new ArDB(arweave, LOGS.ARWEAVE);
 });
 
 test('transaction', async () => {
   const res = await ardb.search('transactions').id('A235HBk5p4nEWfjBEGsAo56kYsmq7mCCyc5UZq5sgjY').findOne();
-  expect(res[0].node.id).toBe('A235HBk5p4nEWfjBEGsAo56kYsmq7mCCyc5UZq5sgjY');
+  expect(res.id).toBe('A235HBk5p4nEWfjBEGsAo56kYsmq7mCCyc5UZq5sgjY');
   const tx = await ardb.search('transaction').id('A235HBk5p4nEWfjBEGsAo56kYsmq7mCCyc5UZq5sgjY').findOne();
   expect(tx.id).toBe('A235HBk5p4nEWfjBEGsAo56kYsmq7mCCyc5UZq5sgjY');
 });
@@ -28,57 +31,58 @@ test('transactions', async () => {
 });
 
 test('next', async () => {
-  const res = await ardb.search('transactions').appName('SmartWeaveAction').findOne();
-  const res2 = await ardb.next();
+  const res = (await ardb.search('transactions').appName('SmartWeaveAction').findOne()) as Transaction;
+  const res2 = (await ardb.next()) as Transaction;
 
-  expect(res[0].node.id).not.toBe(res2[0].node.id);
+  expect(res.id).not.toBe(res2.id);
 });
 
 test('block', async () => {
-  const block = await ardb
+  const block = (await ardb
     .search('block')
     .id('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_')
-    .findOne();
+    .findOne()) as Block;
   expect(block.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 });
 
 test('blocks', async () => {
-  const res = await ardb
+  const res = (await ardb
     .search('blocks')
     .ids(['Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_'])
-    .findOne();
-  expect(res[0].node.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
+    .findOne()) as Block;
+  expect(res.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 
-  const blocks = await ardb
+  const blocks = (await ardb
     .search('blocks')
     .id('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T')
-    .findAll();
+    .findAll()) as Block[];
   expect(blocks.length).toBe(1);
-  expect(blocks[0].node.id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
+  expect(blocks[0].id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
 });
 
 test('only', async () => {
-  const res = await ardb
+  const res = (await ardb
     .search('transactions')
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
-    .only('id')
-    .findOne();
-  expect(res.length).toBe(1);
-  expect(res[0].node).toHaveProperty('id');
-  expect(Object.keys(res[0].node).length).toBe(1);
+    .only('owner')
+    .findOne()) as Transaction;
 
-  const res2 = await ardb
+  expect(res.id).toBeUndefined();
+  expect(res).toHaveProperty('owner');
+  expect(res.owner).toHaveProperty('address');
+  expect(res.owner).toHaveProperty('key');
+
+  const res2 = (await ardb
     .search('transactions')
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
     .only(['id', 'owner.address'])
-    .findOne();
-  expect(res2.length).toBe(1);
-  expect(res2[0].node).toHaveProperty('id');
-  expect(Object.keys(res2[0].node).length).toBe(2);
-  expect(res2[0].node.owner).toHaveProperty('address');
-  expect(Object.keys(res2[0].node.owner).length).toBe(1);
+    .findOne()) as Transaction;
+
+  expect(res2).toHaveProperty('id');
+  expect(res2.owner).toHaveProperty('address');
+  expect(Object.keys(res2.owner).length).toBe(1);
 });
 
 test('exclude', async () => {
@@ -88,21 +92,25 @@ test('exclude', async () => {
     .tag('Type', 'ArweaveActivity')
     .exclude('id')
     .findOne();
-  expect(res.length).toBe(1);
-  expect(res[0].node).not.toHaveProperty('id');
-  expect(res[0].node).toHaveProperty('anchor');
-  expect(res[0].node).toHaveProperty('signature');
-  expect(Object.keys(res[0].node).length).toBe(10);
 
-  const res2 = await ardb
+  expect(res.id).toBeUndefined();
+  expect(res).toHaveProperty('anchor');
+  expect(res).toHaveProperty('signature');
+
+  const res2 = (await ardb
     .search('transactions')
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
     .exclude(['id', 'owner.address'])
-    .findOne();
-  expect(res2.length).toBe(1);
-  expect(Object.keys(res2[0].node).length).toBe(10);
-  expect(res2[0].node).not.toHaveProperty('id');
-  expect(res2[0].node.owner).not.toHaveProperty('address');
-  expect(res2[0].node.owner).toHaveProperty('key');
+    .findOne()) as Transaction;
+
+  expect(res2.id).toBeUndefined();
+  expect(res2.owner.address).toBeUndefined();
+  expect(res2.owner).toHaveProperty('key');
+});
+
+test('empty result', async () => {
+  const txs = await ardb.search('transactions').tag('Asdfasdfasdf', 'Ushdhsha').findAll();
+
+  expect(txs.length).toBe(0);
 });

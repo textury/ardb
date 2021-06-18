@@ -9,12 +9,13 @@ Plus, coming soon, we are planing to release an easy way to add or update data t
 #### Let's get coding!
 First you'll need to add ardb to your project:
 ```
-yarn add ardb
+yarn add @textury/ardb
 ```
 
 Import it into your project file:
 ```js 
-import ArDB from 'ardb';
+import ArDB from '@textury/ardb';
+const ardb = new ArDB(arweaveInstance, logLevel? = LOG.ARWEAVE); // logLevel is optional and respects Arweave's logging by default.
 ```
 
 And now we are ready to play with it!
@@ -68,7 +69,7 @@ type(type: string)
 - Search by the default `Content-Type` tag and set it's value to `type`.
 
 ```js
-tags(tags: {name: string, values: string[]})
+tags(tags: {name: string, values: string|string[]})
 ```
 - Search by custom tags, example: `tags([{name: 'app', values: ['myval']}, {name: 'date', values: ['yesterday', 'today']}])`.
 
@@ -126,12 +127,12 @@ After we complete our request with the previous methods, we can go ahead and fin
 ```js
 findOne(options: GlobalOptions = {})
 ```
- - Returns one item or an array containing just one item. For `transactions` and `blocks` it set the limit to `1` automatically, even if a `limit()` was set.
+ - Returns one item. For `transactions` and `blocks` it set the limit to `1` automatically, even if a `limit()` is set.
 
  ```js
  find(options: GlobalOptions = {})
  ```
- - Returns items based on their `limit()`, if not set, limit is at the default `10`.
+ - Returns an array of items based on their `limit()`, if not set, limit is at the default `10`.
 
  ```js
  findAll(options: GlobalOptions = {})
@@ -141,7 +142,7 @@ findOne(options: GlobalOptions = {})
  ```js
  next()
  ```
- - Returns the next batch of items after doing a `find()`.
+ - Returns the next batch of items. If used after `find()` it returns one item. Else, it returns an array of items.
 
  ```js
  run(query: string)
