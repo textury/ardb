@@ -1,6 +1,6 @@
 {
   "name": "@textury/ardb",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "lib/ardb.js",
   "repository": "https://github.com/textury/ardb.git",
   "author": "Cedrik <cedrik.git@tryninja.io>",
