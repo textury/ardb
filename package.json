@@ -2,7 +2,7 @@
   "name": "@textury/ardb",
   "version": "1.1.0",
   "main": "lib/ardb.js",
-  "repository": "https://github.com/cedriking/ardb.git",
+  "repository": "https://github.com/textury/ardb.git",
   "author": "Cedrik <cedrik.git@tryninja.io>",
   "license": "MIT",
   "files": [
