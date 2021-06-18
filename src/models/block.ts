@@ -1,7 +1,7 @@
 import { GQLBlockInterface } from '../faces/gql';
 import { log, LOGS } from '../utils/log';
 
-export class Block implements GQLBlockInterface {
+export default class ArdbBlock implements GQLBlockInterface {
   private _id: string;
   private _timestamp: number;
   private _height: number;

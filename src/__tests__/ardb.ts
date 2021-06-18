@@ -1,7 +1,7 @@
 import Arweave from 'arweave';
 import ArDB from '../ardb';
-import { Block } from '../models/block';
-import { Transaction } from '../models/transaction';
+import ArdbBlock from '../models/block';
+import ArdbTransaction from '../models/transaction';
 import { LOGS } from '../utils/log';
 
 let ardb: ArDB;
@@ -31,8 +31,8 @@ test('transactions', async () => {
 });
 
 test('next', async () => {
-  const res = (await ardb.search('transactions').appName('SmartWeaveAction').findOne()) as Transaction;
-  const res2 = (await ardb.next()) as Transaction;
+  const res = (await ardb.search('transactions').appName('SmartWeaveAction').findOne()) as ArdbTransaction;
+  const res2 = (await ardb.next()) as ArdbTransaction;
 
   expect(res.id).not.toBe(res2.id);
 });
@@ -41,7 +41,7 @@ test('block', async () => {
   const block = (await ardb
     .search('block')
     .id('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_')
-    .findOne()) as Block;
+    .findOne()) as ArdbBlock;
   expect(block.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 });
 
@@ -49,13 +49,13 @@ test('blocks', async () => {
   const res = (await ardb
     .search('blocks')
     .ids(['Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_'])
-    .findOne()) as Block;
+    .findOne()) as ArdbBlock;
   expect(res.id).toBe('Au_cisRlqgEZuXym9cID4lXOqVTSHKcqMlwkuwxClGyD6S89n0tOc2NrhGm0dAX_');
 
   const blocks = (await ardb
     .search('blocks')
     .id('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T')
-    .findAll()) as Block[];
+    .findAll()) as ArdbBlock[];
   expect(blocks.length).toBe(1);
   expect(blocks[0].id).toBe('BkJ_h-GGIwfek-cJd-RaJrOXezAc0PmklItzzCLIF_aSk36FEjpOBuBDS27D2K_T');
 });
@@ -66,7 +66,7 @@ test('only', async () => {
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
     .only('owner')
-    .findOne()) as Transaction;
+    .findOne()) as ArdbTransaction;
 
   expect(res.id).toBeUndefined();
   expect(res).toHaveProperty('owner');
@@ -78,7 +78,7 @@ test('only', async () => {
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
     .only(['id', 'owner.address'])
-    .findOne()) as Transaction;
+    .findOne()) as ArdbTransaction;
 
   expect(res2).toHaveProperty('id');
   expect(res2.owner).toHaveProperty('address');
@@ -102,7 +102,7 @@ test('exclude', async () => {
     .appName('SmartWeaveAction')
     .tag('Type', 'ArweaveActivity')
     .exclude(['id', 'owner.address'])
-    .findOne()) as Transaction;
+    .findOne()) as ArdbTransaction;
 
   expect(res2.id).toBeUndefined();
   expect(res2.owner.address).toBeUndefined();

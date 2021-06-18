@@ -2,8 +2,8 @@ import Arweave from 'arweave';
 import { fieldType } from './faces/fields';
 import GQLResultInterface, { GQLEdgeBlockInterface, GQLEdgeTransactionInterface } from './faces/gql';
 import { IGlobalOptions, RequestType } from './faces/options';
-import { Block } from './models/block';
-import { Transaction } from './models/transaction';
+import ArdbBlock from './models/block';
+import ArdbTransaction from './models/transaction';
 import { Log, log, LOGS } from './utils/log';
 
 /**
@@ -347,7 +347,7 @@ export default class ArDB {
    * @param filters Optional. You can manually add the filters here instead of using our search methods.
    * @returns A list of transactions or blocks.
    */
-  async find(filters: IGlobalOptions = {}): Promise<Transaction[] | Block[]> {
+  async find(filters: IGlobalOptions = {}): Promise<ArdbTransaction[] | ArdbBlock[]> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -367,7 +367,7 @@ export default class ArDB {
    * @param filters
    * @returns
    */
-  async findOne(filters: IGlobalOptions = {}): Promise<Transaction | Block> {
+  async findOne(filters: IGlobalOptions = {}): Promise<ArdbTransaction | ArdbBlock> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -380,7 +380,7 @@ export default class ArDB {
     return txs.length ? txs[0] : null;
   }
 
-  async findAll(filters: IGlobalOptions = {}): Promise<Transaction[] | Block[]> {
+  async findAll(filters: IGlobalOptions = {}): Promise<ArdbTransaction[] | ArdbBlock[]> {
     this.checkSearchType();
 
     for (const filter of Object.keys(filters)) {
@@ -394,7 +394,7 @@ export default class ArDB {
   /**
    * To run with the cursor
    */
-  async next(): Promise<Transaction | Block | Transaction[] | Block[]> {
+  async next(): Promise<ArdbTransaction | ArdbBlock | ArdbTransaction[] | ArdbBlock[]> {
     if (!this.after || !this.after.length) {
       log.show('next(): Nothing more to search.');
       return;
@@ -406,7 +406,7 @@ export default class ArDB {
     return this.options.first === 1 ? (result.length ? result[0] : null) : result;
   }
 
-  async run(query: string): Promise<Transaction[] | Block[]> {
+  async run(query: string): Promise<ArdbTransaction[] | ArdbBlock[]> {
     log.show('Running query:');
     log.show(query);
 
@@ -415,9 +415,9 @@ export default class ArDB {
     if (!res) return [];
 
     if (res.transaction) {
-      return [new Transaction(res.transaction, this.arweave)];
+      return [new ArdbTransaction(res.transaction, this.arweave)];
     } else if (res.block) {
-      return [new Block(res.block)];
+      return [new ArdbBlock(res.block)];
     } else if (res.transactions) {
       const edges = res.transactions.edges;
       if (edges && edges.length) {
@@ -425,7 +425,7 @@ export default class ArDB {
       } else {
         this.after = '';
       }
-      return edges.map((edge) => new Transaction(edge.node, this.arweave));
+      return edges.map((edge) => new ArdbTransaction(edge.node, this.arweave));
     } else if (res.blocks) {
       const edges = res.blocks.edges;
       if (edges && edges.length) {
@@ -433,11 +433,11 @@ export default class ArDB {
       } else {
         this.after = '';
       }
-      return edges.map((edge) => new Block(edge.node));
+      return edges.map((edge) => new ArdbBlock(edge.node));
     }
   }
 
-  async runAll(query: string): Promise<Transaction[] | Block[]> {
+  async runAll(query: string): Promise<ArdbTransaction[] | ArdbBlock[]> {
     let hasNextPage: boolean = true;
     let edges: (GQLEdgeTransactionInterface | GQLEdgeBlockInterface)[] = [];
     let cursor = this.options.after || '';
@@ -454,9 +454,9 @@ export default class ArDB {
       }
 
       if (res.transaction) {
-        return [new Transaction(res.transaction, this.arweave)];
+        return [new ArdbTransaction(res.transaction, this.arweave)];
       } else if (res.block) {
-        return [new Block(res.block)];
+        return [new ArdbBlock(res.block)];
       } else if (res.transactions) {
         const r = res.transactions;
         if (r.edges && r.edges.length) {
@@ -479,9 +479,9 @@ export default class ArDB {
     }
 
     if (isTx) {
-      return edges.map((edge) => new Transaction(edge.node, this.arweave));
+      return edges.map((edge) => new ArdbTransaction(edge.node, this.arweave));
     } else {
-      return edges.map((edge) => new Block(edge.node));
+      return edges.map((edge) => new ArdbBlock(edge.node));
     }
   }
 

@@ -9,7 +9,7 @@ import {
 } from '../faces/gql';
 import { log, LOGS } from '../utils/log';
 
-export class Transaction implements GQLTransactionInterface {
+export default class ArdbTransaction implements GQLTransactionInterface {
   private _id: string;
   private _anchor: string;
   private _signature: string;
@@ -20,27 +20,9 @@ export class Transaction implements GQLTransactionInterface {
   private _data: GQLMetaDataInterface;
   private _tags: GQLTagInterface[];
   private _block: GQLBlockInterface;
-  private _parent: {
-    id: string;
-  };
+  private _parent: { id: string };
 
   private arweave: Arweave;
-
-  constructor(obj: Partial<GQLTransactionInterface>, arweave: Arweave) {
-    this._id = obj.id;
-    this._anchor = obj.anchor;
-    this._signature = obj.signature;
-    this._recipient = obj.recipient;
-    this._owner = obj.owner;
-    this._fee = obj.fee;
-    this._quantity = obj.quantity;
-    this._data = obj.data;
-    this._tags = obj.tags;
-    this._block = obj.block;
-    this._parent = obj.parent;
-
-    this.arweave = arweave;
-  }
 
   // Getters
   public get id(): string {
@@ -96,5 +78,24 @@ export class Transaction implements GQLTransactionInterface {
   public get parent(): { id: string } {
     if (!this._parent || !this._parent.id) log.show("Parent wasn't defined, make sure you have selected to return it.");
     return this._parent;
+  }
+
+  constructor(obj: Partial<GQLTransactionInterface>, arweave: Arweave) {
+    this._id = obj.id;
+    this._anchor = obj.anchor;
+    this._signature = obj.signature;
+    this._recipient = obj.recipient;
+    this._owner = obj.owner;
+    this._fee = obj.fee;
+    this._quantity = obj.quantity;
+    this._data = obj.data;
+    this._tags = obj.tags;
+    this._block = obj.block;
+
+    if (obj.parent && obj.parent.id) {
+      this._parent = obj.parent;
+    }
+
+    this.arweave = arweave;
   }
 }
