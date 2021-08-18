@@ -20,7 +20,7 @@
     "postversion": "git push && git push --tags"
   },
   "dependencies": {
-    "arweave": "^1.10.11"
+    "arweave": "^1.10.15"
   },
   "devDependencies": {
     "@types/jest": "^26.0.21",

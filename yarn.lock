@@ -679,6 +679,13 @@ anymatch@^3.0.3:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
+arconnect@^0.2.8:
+  version "0.2.9"
+  resolved "https://registry.yarnpkg.com/arconnect/-/arconnect-0.2.9.tgz#be07d2281f20d864a91cdcb44e3eed7fccb97f12"
+  integrity sha512-Us49eN/+8l6BrkAPdXnJVPwWlxxUPR7QaBjA0j3OBAcioIFRpwTdoPN9FxtwDGN91lgM6ebOudTXJToRiNizoA==
+  dependencies:
+    arweave "^1.10.13"
+
 arg@^4.1.0:
   version "4.1.3"
   resolved "https://registry.yarnpkg.com/arg/-/arg-4.1.3.tgz#269fc7ad5b8e42cb63c896d5666017261c144089"
@@ -711,11 +718,12 @@ array-unique@^0.3.2:
   resolved "https://registry.yarnpkg.com/array-unique/-/array-unique-0.3.2.tgz#a894b75d4bc4f6cd679ef3244a9fd8f46ae2d428"
   integrity sha1-qJS3XUvE9s1nnvMkSp/Y9Gri1Cg=
 
-arweave@^1.10.11:
-  version "1.10.11"
-  resolved "https://registry.yarnpkg.com/arweave/-/arweave-1.10.11.tgz#59dff46319e258d68f9b921a1f709be457fb7162"
-  integrity sha512-rh3Yhc7Zjf476Lvg4zjvURg1HvdrRej/2528QqQrlej/EocEfHt1/TEM35r3ghDzRBvHLUcMkqIDUwLotS5sUA==
+arweave@^1.10.13, arweave@^1.10.15:
+  version "1.10.16"
+  resolved "https://registry.yarnpkg.com/arweave/-/arweave-1.10.16.tgz#b968590cb413242636196d2339562dd106840bb9"
+  integrity sha512-j2UM7C/2MHO7Mv7wbzhihgVs8uN2+QltA+3cYaM82dNNEBBJylIClJUHHMqsK/2ejCnziQm4FofiUFbsQDdQDg==
   dependencies:
+    arconnect "^0.2.8"
     asn1.js "^5.4.1"
     axios "^0.21.1"
     base64-js "^1.3.1"
