@@ -9,12 +9,12 @@ Plus, coming soon, we are planing to release an easy way to add or update data t
 #### Let's get coding!
 First you'll need to add ardb to your project:
 ```
-yarn add @textury/ardb
+yarn add ardb
 ```
 
 Import it into your project file:
 ```js 
-import ArDB from '@textury/ardb';
+import ArDB from 'ardb';
 const ardb = new ArDB(arweaveInstance, logLevel? = LOG.ARWEAVE); // logLevel is optional and respects Arweave's logging by default.
 ```
 
