@@ -66,7 +66,7 @@ export default class ArdbTransaction implements GQLTransactionInterface {
   }
 
   public get tags(): GQLTagInterface[] {
-    if (!this.tags) log.show("Tags wasn't defined, make sure you have selected to return it.");
+    if (!this._tags) log.show("Tags wasn't defined, make sure you have selected to return it.");
     return this._tags;
   }
 
