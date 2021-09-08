@@ -1,3 +1,4 @@
+import Ardk from 'ardk';
 import Arweave from 'arweave';
 import {
   GQLAmountInterface,
@@ -22,7 +23,7 @@ export default class ArdbTransaction implements GQLTransactionInterface {
   private _block: GQLBlockInterface;
   private _parent: { id: string };
 
-  private arweave: Arweave;
+  private arweave: Arweave | Ardk;
 
   // Getters
   public get id(): string {
@@ -80,7 +81,7 @@ export default class ArdbTransaction implements GQLTransactionInterface {
     return this._parent;
   }
 
-  constructor(obj: Partial<GQLTransactionInterface>, arweave: Arweave) {
+  constructor(obj: Partial<GQLTransactionInterface>, arweave: Arweave | Ardk) {
     this._id = obj.id;
     this._anchor = obj.anchor;
     this._signature = obj.signature;
