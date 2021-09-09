@@ -5,6 +5,8 @@ import ArdbBlock from '../models/block';
 import ArdbTransaction from '../models/transaction';
 import { LOGS } from '../utils/log';
 
+jest.setTimeout(10000);
+
 describe('USING ARWEAVE', () => {
   let ardb: ArDB;
   beforeAll(async () => {
