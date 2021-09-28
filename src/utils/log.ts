@@ -1,4 +1,4 @@
-import Ardk from 'ardk';
+import Blockweave from 'blockweave';
 import Arweave from 'arweave';
 
 export enum LOGS {
@@ -9,9 +9,9 @@ export enum LOGS {
 
 export class Log {
   private logs: LOGS = LOGS.ARWEAVE;
-  private arweave: Arweave | Ardk;
+  private arweave: Arweave | Blockweave;
 
-  init(logLevel: LOGS = LOGS.ARWEAVE, arweave: Arweave | Ardk) {
+  init(logLevel: LOGS = LOGS.ARWEAVE, arweave: Arweave | Blockweave) {
     this.logs = logLevel;
     this.arweave = arweave;
 

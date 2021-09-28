@@ -1,5 +1,5 @@
 import Arweave from 'arweave';
-import Ardk from 'ardk';
+import Blockweave from 'blockweave';
 import { fieldType } from './faces/fields';
 import GQLResultInterface, { GQLEdgeBlockInterface, GQLEdgeTransactionInterface } from './faces/gql';
 import { IGlobalOptions, RequestType } from './faces/options';
@@ -12,7 +12,7 @@ import { Log, log, LOGS } from './utils/log';
  * To easily interact with Arweave's graphql endpoint.
  */
 export default class ArDB {
-  private arweave: Arweave | Ardk;
+  private arweave: Arweave | Blockweave;
   private reqType: RequestType = 'transactions';
   private options: IGlobalOptions = {};
   private after: string = '';
@@ -57,7 +57,7 @@ export default class ArDB {
    * @param arweave An arweave instance
    * @param logLevel Show logs. 0 = false, 1 = true, 2 = if arweave instance has log enabled.
    */
-  constructor(arweave: Arweave | Ardk, logLevel: LOGS = LOGS.ARWEAVE) {
+  constructor(arweave: Arweave | Blockweave, logLevel: LOGS = LOGS.ARWEAVE) {
     this.arweave = arweave;
     log.init(logLevel, arweave);
 

@@ -1,4 +1,4 @@
-import Ardk from 'ardk';
+import Blockweave from 'blockweave';
 import Arweave from 'arweave';
 import ArDB from '../ardb';
 import ArdbBlock from '../models/block';
@@ -142,16 +142,16 @@ describe('USING ARWEAVE', () => {
   });
 });
 
-describe('USING ARDK', () => {
+describe('USING BLOCKWEAVE', () => {
   let ardb: ArDB;
   beforeAll(async () => {
     jest.setTimeout(100000);
-    const ardk = new Ardk({
+    const bw = new Blockweave({
       host: 'arweave.net',
       port: 443,
       protocol: 'https',
     });
-    ardb = new ArDB(ardk, LOGS.ARWEAVE);
+    ardb = new ArDB(bw, LOGS.ARWEAVE);
   });
 
   test('transaction', async () => {
