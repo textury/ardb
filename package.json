@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "arweave": "^1.10.15",
-    "blockweave": "^1.0.15"
+    "blockweave": "^1.0.15",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/jest": "^27.0.1",
