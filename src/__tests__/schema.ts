@@ -1,14 +1,17 @@
 import Blockweave from 'blockweave';
 import ArDB from '../ardb';
+import Arlocal from 'arlocal';
 import { Schema } from '../schema';
 describe('', () => {
   let blockweave;
   let ardb;
   let key;
   let Character;
+  let arlocal;
   beforeAll(async () => {
     blockweave = new Blockweave({ url: 'http://localhost:1984' });
-
+    arlocal = new Arlocal();
+    await arlocal.start();
     // @ts-ignore
     ardb = new ArDB(blockweave);
     key = await blockweave.wallets.generate();
@@ -23,6 +26,9 @@ describe('', () => {
       key,
       ardb
     );
+  });
+  afterAll(async () => {
+    await arlocal.stop();
   });
   it('Create a "document"', async () => {
     const luck = await Character.create({
@@ -77,5 +83,78 @@ describe('', () => {
     expect(newLuck.father).toBeUndefined();
     expect(newLuck.age).toEqual(sky.age);
     expect(newLuck._v).toEqual(3);
+  });
+  it('Get a "document" from filter using age', async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+    const sky = await Character.find({ age: 100 });
+    expect(luck._id).toEqual(sky._id);
+    expect(luck.firstName).toEqual(sky.firstName);
+    expect(luck.lastName).toEqual(sky.lastName);
+    expect(luck.father).toBeUndefined();
+    expect(luck.age).toEqual(sky.age);
+    expect(luck._v).toEqual(1);
+  });
+  it('Get a "document" from filter using age and firstName', async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+    const sky = await Character.find({ age: 100, firstName: ['luck', 'something Else'] });
+    expect(luck._id).toEqual(sky._id);
+    expect(luck.firstName).toEqual(sky.firstName);
+    expect(luck.lastName).toEqual(sky.lastName);
+    expect(luck.father).toBeUndefined();
+    expect(luck.age).toEqual(sky.age);
+    expect(luck._v).toEqual(1);
+  });
+  it('returns undefined when not found', async () => {
+    await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+    const sky = await Character.find({ age: 2 });
+    expect(sky).toBeUndefined();
+  });
+  it("returns undefined when it's not the last version", async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+    let newLuck = await Character.updateById(luck._id, {
+      age: 99,
+      firstName: 'luck',
+      lastName: 'skywalker',
+      father: 'Anakin Skywalker',
+    });
+    let sky = await Character.findById(luck._id);
+    expect(newLuck._id).toEqual(sky._id);
+    expect(newLuck.firstName).toEqual(sky.firstName);
+    expect(newLuck.lastName).toEqual(sky.lastName);
+    expect(newLuck.father).toEqual(sky.father);
+    expect(newLuck.age).toEqual(sky.age);
+    expect(newLuck._v).toEqual(2);
+    newLuck = await Character.updateById(luck._id, {
+      age: 98,
+      firstName: 'luck',
+      lastName: 'skywalker',
+    });
+    sky = await Character.find({ age: 98 });
+    expect(newLuck._id).toEqual(sky._id);
+    expect(newLuck.firstName).toEqual(sky.firstName);
+    expect(newLuck.lastName).toEqual(sky.lastName);
+    expect(newLuck.father).toBeUndefined();
+    expect(newLuck.age).toEqual(sky.age);
+    expect(newLuck._v).toEqual(3);
+    sky = await Character.find({ age: 100 });
+    expect(sky).toBeUndefined();
+    sky = await Character.find({ father: 'Anakin Skywalker' });
+    expect(sky).toBeUndefined();
   });
 });
