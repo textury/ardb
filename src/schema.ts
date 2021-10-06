@@ -99,7 +99,7 @@ export class Schema {
     });
     return data;
   }
-  async find(filter: { name: string; values: string[] | string }[]): Promise<any> {
+  async findOne(filter: { name: string; values: string[] | string }[]): Promise<any> {
     const data = {};
     const filterTags = Object.keys(filter).map((key) => ({
       name: `${this.prefix}${key}`,
@@ -134,5 +134,80 @@ export class Schema {
       if (this.schemaTypes[prop] === 'number') if (data[prop]) data[prop] = parseInt(data[prop], 10);
     });
     return data;
+  }
+  async findMany(filter: { name: string; values: string[] | string }[]) {
+    const data = {};
+    const filterTags = Object.keys(filter).map((key) => ({
+      name: `${this.prefix}${key}`,
+      values: Array.isArray(filter[key]) ? filter[key] : [`${filter[key]}`],
+    }));
+
+    const txs = await this.ardb.search('transactions').tags(filterTags).findAll();
+    if (!txs?.length) return undefined;
+    const transactions = [];
+    for (const tx of txs) {
+      const txData = {};
+
+      // @ts-ignore
+      const tags = tx._tags;
+      tags.forEach((tag) => {
+        const prop = tag.name.split(this.prefix)[1];
+        txData[prop] = tag.value;
+      });
+
+      const lastTxVersion = await this.ardb.search('transactions').tag(`${this.prefix}_id`, txData[`_id`]).findOne();
+
+      // @ts-ignore
+      const lastV = lastTxVersion._tags.find((tag) => tag.name === `${this.prefix}_v`).value;
+
+      if (lastV === txData[`_v`]) {
+        /* ------------------- convert type back ----------------- */
+        // @ts-ignore
+        txData._createdAt = new Date(data._createdAt);
+        // @ts-ignore
+        txData._v = parseInt(data._v, 10);
+        Object.keys(this.schemaTypes).forEach((prop: string) => {
+          if (this.schemaTypes[prop] === 'number') if (txData[prop]) txData[prop] = parseInt(txData[prop], 10);
+        });
+        transactions.push(txData);
+      }
+    }
+
+    return transactions;
+  }
+  async updateOne(filter, update) {
+    this.validate(update);
+    const oldData = {};
+    const filterTags = Object.keys(filter).map((key) => ({
+      name: `${this.prefix}${key}`,
+      values: Array.isArray(filter[key]) ? filter[key] : [`${filter[key]}`],
+    }));
+
+    const oldTx = await this.ardb.search('transactions').tags(filterTags).findOne();
+    if (!oldTx) return undefined;
+
+    // @ts-ignore
+    const tags = oldTx._tags;
+    tags.forEach((tag) => {
+      const prop = tag.name.split(this.prefix)[1];
+      oldData[prop] = tag.value;
+    });
+
+    const lastTxVersion = await this.ardb.search('transactions').tag(`${this.prefix}_id`, oldData[`_id`]).findOne();
+    // @ts-ignore
+    const lastV = lastTxVersion._tags.find((tag) => tag.name === `${this.prefix}_v`).value;
+
+    if (lastV !== oldData[`_v`]) return undefined;
+
+    const tx = await this.blockweave.createTransaction({ data: `${Math.random().toString().slice(-4)}` }, this.wallet);
+    update[`_id`] = oldData[`_id`];
+    update[`_v`] = parseInt(oldData[`_v`], 10) + 1;
+    update[`_createdAt`] = new Date().toISOString();
+    Object.keys(update).forEach((key) => {
+      tx.addTag(`${this.prefix}${key}`, update[key]);
+    });
+    await tx.signAndPost();
+
+    return update;
   }
 }

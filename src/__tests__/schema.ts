@@ -90,7 +90,7 @@ describe('', () => {
       firstName: 'luck',
       lastName: 'Skywalker',
     });
-    const sky = await Character.find({ age: 100 });
+    const sky = await Character.findOne({ age: 100 });
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
     expect(luck.lastName).toEqual(sky.lastName);
@@ -104,7 +104,7 @@ describe('', () => {
       firstName: 'luck',
       lastName: 'Skywalker',
     });
-    const sky = await Character.find({ age: 100, firstName: ['luck', 'something Else'] });
+    const sky = await Character.findOne({ age: 100, firstName: ['luck', 'something Else'] });
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
     expect(luck.lastName).toEqual(sky.lastName);
@@ -118,7 +118,7 @@ describe('', () => {
       firstName: 'luck',
       lastName: 'Skywalker',
     });
-    const sky = await Character.find({ age: 2 });
+    const sky = await Character.findOne({ age: 2 });
     expect(sky).toBeUndefined();
   });
   it("returns undefined when it's not the last version", async () => {
@@ -145,16 +145,79 @@ describe('', () => {
       firstName: 'luck',
       lastName: 'skywalker',
     });
-    sky = await Character.find({ age: 98 });
+    sky = await Character.findOne({ age: 98 });
     expect(newLuck._id).toEqual(sky._id);
     expect(newLuck.firstName).toEqual(sky.firstName);
     expect(newLuck.lastName).toEqual(sky.lastName);
     expect(newLuck.father).toBeUndefined();
     expect(newLuck.age).toEqual(sky.age);
     expect(newLuck._v).toEqual(3);
-    sky = await Character.find({ age: 100 });
+    sky = await Character.findOne({ age: 100 });
     expect(sky).toBeUndefined();
-    sky = await Character.find({ father: 'Anakin Skywalker' });
+    sky = await Character.findOne({ father: 'Anakin Skywalker' });
     expect(sky).toBeUndefined();
+  });
+  it('update a "document" with filter ', async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+    let newLuck = await Character.updateOne(
+      { age: 100 },
+      {
+        age: 99,
+        firstName: 'luck',
+        lastName: 'skywalker',
+        father: 'Anakin Skywalker',
+      }
+    );
+    const sky = await Character.findById(luck._id);
+    expect(newLuck._id).toEqual(sky._id);
+    expect(newLuck.firstName).toEqual(sky.firstName);
+    expect(newLuck.lastName).toEqual(sky.lastName);
+    expect(newLuck.father).toEqual(sky.father);
+    expect(newLuck.age).toEqual(sky.age);
+    expect(newLuck._v).toEqual(2);
+
+    newLuck = await Character.updateOne(
+      { age: 100 },
+      {
+        age: 99,
+        firstName: 'luck',
+        lastName: 'skywalker',
+        father: 'Anakin Skywalker',
+      }
+    );
+    expect(newLuck).toBeUndefined();
+  });
+
+  it('returns many', async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'SKywalker',
+    });
+    const anakin = await Character.create({
+      age: 153,
+      firstName: 'anakin',
+      lastName: 'SKywalker',
+    });
+    let skywalkers = await Character.findMany({ lastName: 'SKywalker' });
+    expect(skywalkers[0].firstName).toEqual(anakin.firstName);
+    expect(skywalkers[0].age).toEqual(anakin.age);
+    expect(skywalkers[1].firstName).toEqual(luck.firstName);
+    expect(skywalkers[1].age).toEqual(luck.age);
+
+    await Character.updateOne(
+      { age: 153 },
+      {
+        age: 153,
+        firstName: 'anakin',
+        lastName: 'vador',
+      }
+    );
+    skywalkers = await Character.findMany({ lastName: 'SKywalker' });
+    expect(skywalkers?.length).toEqual(1);
   });
 });
