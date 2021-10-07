@@ -220,4 +220,24 @@ describe('', () => {
     skywalkers = await Character.findMany({ lastName: 'SKywalker' });
     expect(skywalkers?.length).toEqual(1);
   });
+
+  it('Gets a document history', async () => {
+    const luck = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+    });
+
+    let newLuck = await Character.updateById(luck._id, {
+      age: 99,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+      father: 'Anakin Skywalker',
+    });
+
+    const history = await Character.history(luck._id);
+    expect(history.length).toEqual(2);
+    expect(history[0]._id).toEqual(history[1]._id);
+    expect(history[0].firstName).toEqual(history[1].firstName);
+  })
 });
