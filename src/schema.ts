@@ -175,6 +175,46 @@ export class Schema {
 
     return transactions;
   }
+
+  async history(id: string): Promise<any> {
+    const txs = await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findAll();      
+
+    if (!txs?.length) return undefined;
+    const transactions = [];
+    for (const tx of txs) {
+      const txData = {};
+
+      // @ts-ignore
+      const tags = tx._tags;
+      tags.forEach((tag) => {
+        const prop = tag.name.split(this.prefix)[1];
+        txData[prop] = tag.value;
+
+        // convert _createdAt field to date
+        // @ts-ignore
+        if (txData._createdAt) {
+          // @ts-ignore
+          txData._createdAt = new Date(txData._createdAt)
+        }
+
+        // convert _v field to integer
+        // @ts-ignore
+        if (txData._v) {
+          // @ts-ignore
+          txData._v = parseInt(txData._v)
+        }
+
+        Object.keys(this.schemaTypes).forEach((prop: string) => {
+          if (this.schemaTypes[prop] === 'number') if (txData[prop]) txData[prop] = parseInt(txData[prop], 10);
+        });
+      });
+
+      transactions.push(txData);
+    }
+
+    return transactions;
+  }
+
   async updateOne(filter, update) {
     this.validate(update);
     const oldData = {};
