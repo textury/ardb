@@ -2,10 +2,10 @@ import Blockweave from 'blockweave';
 import { JWKPublicInterface } from 'blockweave/dist/faces/lib/wallet';
 import { v4 as uuid } from 'uuid';
 import ArDB from './ardb';
-import { Document } from './faces/document';
+import { Document, QueryDocumentDTO } from './faces/document';
 import { Tag } from './faces/tag';
 import ArdbTransaction from './models/transaction';
-export class Schema {
+export class Schema<T = {}> {
   private schemaTypes = {};
   private requriedFields: string[] = [];
   private blockweave: Blockweave;
@@ -23,7 +23,7 @@ export class Schema {
     this.ardb = ardb;
   }
 
-  async create(data): Promise<Document> {
+  async create(data: T): Promise<Document & T> {
     this.validate(data);
     const tx = await this.blockweave.createTransaction({ data: `${Math.random().toString().slice(-4)}` }, this.wallet);
     let id = uuid();
@@ -39,7 +39,7 @@ export class Schema {
     return data;
   }
 
-  async findById(id: string): Promise<Document> {
+  async findById(id: string): Promise<Document & T> {
     const tx = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
 
     if (!tx) return undefined;
@@ -52,9 +52,10 @@ export class Schema {
     }
 
     this.convertType(data);
+
     return data;
   }
-  async findOne(filter: Tag): Promise<Document> {
+  async findOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document & T> {
     const filterTags = this.formatFilter(filter);
 
     const tx = (await this.ardb.search('transactions').tags(filterTags).findOne()) as ArdbTransaction;
@@ -70,9 +71,10 @@ export class Schema {
     }
 
     this.convertType(data);
+    // @ts-ignore
     return data;
   }
-  async findMany(filter: Tag): Promise<Document[]> {
+  async findMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document[] & T[]> {
     const filterTags = this.formatFilter(filter);
 
     const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
@@ -116,7 +118,7 @@ export class Schema {
     return transactions;
   }
 
-  async updateById(id: string, update: Document): Promise<Document> {
+  async updateById(id: string, update: T): Promise<Document & T> {
     this.validate(update);
     const oldTx = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
 
@@ -124,11 +126,11 @@ export class Schema {
 
     const oldData = this.formatTags(oldTx.tags);
 
-    await this.createNewVersion(oldData, update);
+    const updatedData = await this.createNewVersion(oldData, update);
 
-    return update;
+    return updatedData;
   }
-  async updateOne(filter: Tag, update: Document): Promise<Document> {
+  async updateOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document & T> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
 
@@ -139,11 +141,11 @@ export class Schema {
 
     if (!(await this.isLastV(oldData[`_id`], oldData[`_v`]))) return undefined;
 
-    await this.createNewVersion(oldData, update);
+    const updatedData = await this.createNewVersion(oldData, update);
 
-    return update;
+    return updatedData;
   }
-  async updateMany(filter: Tag, update: Document): Promise<Document[]> {
+  async updateMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document[] & T[]> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
     const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
@@ -151,12 +153,10 @@ export class Schema {
 
     const transactions = [];
     for (const tx of txs) {
-      const updatedData = { ...update };
-
       const oldData = this.formatTags(tx.tags);
 
       if (await this.isLastV(oldData[`_id`], oldData[`_v`])) {
-        await this.createNewVersion(oldData, updatedData);
+        const updatedData = await this.createNewVersion(oldData, update);
         transactions.push(updatedData);
       }
     }
@@ -172,15 +172,15 @@ export class Schema {
     });
   }
 
-  private formatTags(tags: Tag[]): Document {
-    const doc: Document = {};
+  private formatTags(tags: Tag[]): Document & T {
+    const doc: any = {};
     tags.forEach((tag) => {
       const prop = tag.name.split(this.prefix)[1];
       doc[prop] = tag.value;
     });
     return doc;
   }
-  private formatFilter(filter: Tag): Tag[] {
+  private formatFilter(filter: Document): Tag[] {
     return Object.keys(filter).map((key) => ({
       name: `${this.prefix}${key}`,
       value: Array.isArray(filter[key]) ? filter[key] : [`${filter[key]}`],
@@ -206,14 +206,17 @@ export class Schema {
     });
   }
 
-  private async createNewVersion(oldData: Document, update: Document) {
+  private async createNewVersion(oldData: Document, update: T): Promise<Document & T> {
+    const updatedData: Document & T = { ...update };
     const tx = await this.blockweave.createTransaction({ data: `${Math.random().toString().slice(-4)}` }, this.wallet);
-    update._id = oldData._id;
-    update._v = parseInt(oldData._v.toString(), 10) + 1;
-    update._createdAt = new Date();
-    Object.keys(update).forEach((key) => {
-      tx.addTag(`${this.prefix}${key}`, update[key]);
+    updatedData._id = oldData._id;
+    updatedData._v = parseInt(oldData._v.toString(), 10) + 1;
+    updatedData._createdAt = new Date();
+    Object.keys(updatedData).forEach((key) => {
+      tx.addTag(`${this.prefix}${key}`, updatedData[key]);
     });
     await tx.signAndPost();
+
+    return updatedData;
   }
 }

@@ -5,3 +5,10 @@ export interface Document {
   _minedAt?: Date;
   [x: string]: any;
 }
+
+export interface QueryDocumentDTO {
+  _id?: string;
+  _createdAt?: Date;
+  _minedAt?: Date;
+  [x: string]: any;
+}

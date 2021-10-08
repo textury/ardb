@@ -3,10 +3,16 @@ import ArDB from '../ardb';
 import Arlocal from 'arlocal';
 import { Schema } from '../schema';
 describe('', () => {
+  interface ICharacter {
+    age: number;
+    firstName: string;
+    lastName: string;
+    father?: string;
+  }
   let blockweave: Blockweave;
   let ardb;
   let key;
-  let Character;
+  let Character: Schema<ICharacter>;
   let arlocal;
   beforeAll(async () => {
     arlocal = new Arlocal(1984, true);
@@ -15,7 +21,7 @@ describe('', () => {
     // @ts-ignore
     ardb = new ArDB(blockweave);
     key = await blockweave.wallets.generate();
-    Character = new Schema(
+    Character = new Schema<ICharacter>(
       {
         age: 'number',
         firstName: { type: 'string' },
@@ -64,6 +70,7 @@ describe('', () => {
       lastName: 'skywalker',
       father: 'Anakin Skywalker',
     });
+
     let sky = await Character.findById(luck._id);
     expect(newLuck._id).toEqual(sky._id);
     expect(newLuck.firstName).toEqual(sky.firstName);
@@ -91,6 +98,7 @@ describe('', () => {
       lastName: 'Skywalker',
     });
     const sky = await Character.findOne({ age: 100 });
+
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
     expect(luck.lastName).toEqual(sky.lastName);
@@ -104,7 +112,8 @@ describe('', () => {
       firstName: 'luck',
       lastName: 'Skywalker',
     });
-    const sky = await Character.findOne({ age: 100, firstName: ['luck', 'something Else'] });
+
+    const sky = await Character.findOne({ age: 100, firstName: 'luck' });
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
     expect(luck.lastName).toEqual(sky.lastName);
