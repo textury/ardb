@@ -141,13 +141,13 @@ export default class ArDB {
    * @param tags Array of objects with name (string) and values (array|string)
    * @returns ardb
    */
-  tags(tags: { name: string; values: string[] | string }[]): ArDB {
+  tags(tags: { name: string; value: string[] | string }[]): ArDB {
     this.checkSearchType();
 
     const ts: { name: string; values: string[] }[] = [];
 
     for (const tag of tags) {
-      const values: string[] = typeof tag.values === 'string' ? [tag.values] : tag.values;
+      const values: string[] = typeof tag.value === 'string' ? [tag.value] : tag.value;
       ts.push({
         name: tag.name,
         values,

@@ -3,15 +3,15 @@ import ArDB from '../ardb';
 import Arlocal from 'arlocal';
 import { Schema } from '../schema';
 describe('', () => {
-  let blockweave;
+  let blockweave: Blockweave;
   let ardb;
   let key;
   let Character;
   let arlocal;
   beforeAll(async () => {
-    blockweave = new Blockweave({ url: 'http://localhost:1984' });
-    arlocal = new Arlocal();
+    arlocal = new Arlocal(1984, true);
     await arlocal.start();
+    blockweave = new Blockweave({ url: 'http://localhost:1984' });
     // @ts-ignore
     ardb = new ArDB(blockweave);
     key = await blockweave.wallets.generate();
@@ -178,6 +178,7 @@ describe('', () => {
     expect(newLuck.lastName).toEqual(sky.lastName);
     expect(newLuck.father).toEqual(sky.father);
     expect(newLuck.age).toEqual(sky.age);
+    expect(99).toEqual(sky.age);
     expect(newLuck._v).toEqual(2);
 
     newLuck = await Character.updateOne(
@@ -203,11 +204,14 @@ describe('', () => {
       firstName: 'anakin',
       lastName: 'SKywalker',
     });
+
     let skywalkers = await Character.findMany({ lastName: 'SKywalker' });
     expect(skywalkers[0].firstName).toEqual(anakin.firstName);
     expect(skywalkers[0].age).toEqual(anakin.age);
+    expect(skywalkers[0]._v).toEqual(1);
     expect(skywalkers[1].firstName).toEqual(luck.firstName);
     expect(skywalkers[1].age).toEqual(luck.age);
+    expect(skywalkers[1]._v).toEqual(1);
 
     await Character.updateOne(
       { age: 153 },
@@ -217,8 +221,10 @@ describe('', () => {
         lastName: 'vador',
       }
     );
+    await blockweave.api.get('mine');
     skywalkers = await Character.findMany({ lastName: 'SKywalker' });
     expect(skywalkers?.length).toEqual(1);
+    expect(skywalkers[0]._minedAt).toBeDefined();
   });
 
   it('Gets a document history', async () => {
@@ -228,16 +234,47 @@ describe('', () => {
       lastName: 'Skywalker',
     });
 
-    let newLuck = await Character.updateById(luck._id, {
+    await Character.updateById(luck._id, {
       age: 99,
       firstName: 'luck',
       lastName: 'Skywalker',
       father: 'Anakin Skywalker',
     });
 
+    await blockweave.api.get('mine');
     const history = await Character.history(luck._id);
     expect(history.length).toEqual(2);
     expect(history[0]._id).toEqual(history[1]._id);
     expect(history[0].firstName).toEqual(history[1].firstName);
-  })
+    expect(history[0]._minedAt).toBeDefined();
+  });
+  it('Updates many', async () => {
+    const luck1 = await Character.create({
+      age: 90,
+      firstName: 'shmi',
+      lastName: 'Skywalker',
+    });
+
+    const luck2 = await Character.create({
+      age: 68,
+      firstName: 'shmi',
+      lastName: 'Skywalker',
+    });
+
+    const lucks = await Character.updateMany(
+      { firstName: 'shmi' },
+      { age: 100, firstName: 'luck', lastName: 'Skywalker' }
+    );
+    expect(lucks.length).toEqual(2);
+    expect(lucks[0].age).toEqual(100);
+    expect(lucks[1].age).toEqual(100);
+    expect(lucks[0].firstName).toEqual('luck');
+    expect(lucks[1].firstName).toEqual('luck');
+    const sky1 = await Character.findById(luck1._id);
+    const sky2 = await Character.findById(luck2._id);
+    expect(sky2.age).toEqual(100);
+    expect(sky2.firstName).toEqual('luck');
+    expect(sky1.age).toEqual(100);
+    expect(sky1.firstName).toEqual('luck');
+  });
 });
