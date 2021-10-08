@@ -97,7 +97,7 @@ export class Schema<T = {}> {
     return transactions;
   }
 
-  async history(id: string): Promise<Document[]> {
+  async history(id: string): Promise<Document[] & T[]> {
     const txs = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findAll()) as ArdbTransaction[];
 
     if (!txs?.length) return undefined;
