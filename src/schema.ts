@@ -199,7 +199,7 @@ export class Schema<T = {}> {
       value: Array.isArray(filter[key]) ? filter[key] : [`${filter[key]}`],
     }));
   }
-  private async isLastV(id, v) {
+  private async isLastV(id: string, v: number): Promise<boolean> {
     const lastTxVersion = (await this.ardb
       .search('transactions')
       .tag(`${this.prefix}_id`, id)
@@ -207,7 +207,7 @@ export class Schema<T = {}> {
 
     const lastV = lastTxVersion.tags.find((tag) => tag.name === `${this.prefix}_v`).value;
 
-    return lastV === v;
+    return lastV === v.toString();
   }
 
   private async getLastVTxData(txsId): Promise<Document[] & T[]> {
