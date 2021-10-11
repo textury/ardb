@@ -71,7 +71,7 @@ export class Schema<T = {}> {
     }
 
     this.convertType(data);
-    // @ts-ignore
+
     return data;
   }
   async findMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document[] & T[]> {
@@ -79,11 +79,17 @@ export class Schema<T = {}> {
 
     const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
     if (!txs?.length) return undefined;
+
+    const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
+    const lastTxsData = await this.getLastVTxData(txsId);
+
     const transactions = [];
     for (const tx of txs) {
       const txData = this.formatTags(tx.tags);
 
-      if (await this.isLastV(txData[`_id`], txData[`_v`])) {
+      const lastTx = lastTxsData.find((Tx) => Tx._id === txData._id && Tx._v === txData._v);
+
+      if (lastTx) {
         const minedAt = tx.block?.timestamp;
         if (minedAt) {
           txData._minedAt = new Date(minedAt * 1000);
@@ -151,11 +157,15 @@ export class Schema<T = {}> {
     const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
     if (!txs?.length) return undefined;
 
+    const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
+    const lastTxsData = await this.getLastVTxData(txsId);
+
     const transactions = [];
     for (const tx of txs) {
       const oldData = this.formatTags(tx.tags);
 
-      if (await this.isLastV(oldData[`_id`], oldData[`_v`])) {
+      const lastTx = lastTxsData.find((Tx) => Tx._id === oldData._id && Tx._v === oldData._v);
+      if (lastTx) {
         const updatedData = await this.createNewVersion(oldData, update);
         transactions.push(updatedData);
       }
@@ -180,6 +190,9 @@ export class Schema<T = {}> {
     });
     return doc;
   }
+  private getIdTags(tags: Tag[]): string {
+    return tags.find((tag) => tag.name === `${this.prefix}_id`).value as string;
+  }
   private formatFilter(filter: Document): Tag[] {
     return Object.keys(filter).map((key) => ({
       name: `${this.prefix}${key}`,
@@ -195,6 +208,17 @@ export class Schema<T = {}> {
     const lastV = lastTxVersion.tags.find((tag) => tag.name === `${this.prefix}_v`).value;
 
     return lastV === v;
+  }
+
+  private async getLastVTxData(txsId): Promise<Document[] & T[]> {
+    return (
+      await Promise.all(
+        txsId.map(
+          async (id) =>
+            (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction
+        )
+      )
+    ).map((tx: ArdbTransaction) => this.formatTags(tx.tags));
   }
 
   private convertType(data: Document) {
