@@ -286,4 +286,22 @@ describe('', () => {
     expect(sky1.age).toEqual(100);
     expect(sky1.firstName).toEqual('luck');
   });
+
+  it('Updates 100', async () => {
+    let i = 100;
+    while (i--)
+      await Character.create({
+        age: 90,
+        firstName: 'shmi',
+        lastName: 'Skywalker',
+      });
+
+    const shmis = await Character.updateMany(
+      { firstName: 'shmi' },
+      { age: 500, firstName: 'shmi', lastName: 'Skywalker' }
+    );
+    expect(shmis.length).toEqual(100);
+    const res = await Character.findMany({ age: 500 });
+    expect(res).toHaveLength(100);
+  });
 });
