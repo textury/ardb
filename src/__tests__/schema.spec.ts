@@ -1,8 +1,8 @@
 import Blockweave from 'blockweave';
-import ArDB from '../ardb';
+import { Query } from '../query';
 import Arlocal from 'arlocal';
 import { Schema } from '../schema';
-describe('', () => {
+describe('SCHEMA', () => {
   interface ICharacter {
     age: number;
     firstName: string;
@@ -10,7 +10,7 @@ describe('', () => {
     father?: string;
   }
   let blockweave: Blockweave;
-  let ardb;
+  let query;
   let key;
   let Character: Schema<ICharacter>;
   let arlocal;
@@ -19,7 +19,7 @@ describe('', () => {
     await arlocal.start();
     blockweave = new Blockweave({ url: 'http://localhost:1984' });
     // @ts-ignore
-    ardb = new ArDB(blockweave);
+    query = new Query(blockweave);
     key = await blockweave.wallets.generate();
     Character = new Schema<ICharacter>(
       {
@@ -30,7 +30,7 @@ describe('', () => {
       },
       blockweave,
       key,
-      ardb
+      query
     );
   });
   afterAll(async () => {
@@ -46,12 +46,13 @@ describe('', () => {
     expect(luck.firstName).toEqual('luck');
     expect(luck.lastName).toEqual('Skywalker');
   });
-  it('Get a "document"', async () => {
+  it('Get a "document" by id', async () => {
     const luck = await Character.create({
       age: 100,
       firstName: 'luck',
       lastName: 'Skywalker',
     });
+
     const sky = await Character.findById(luck._id);
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
@@ -287,8 +288,8 @@ describe('', () => {
     expect(sky1.firstName).toEqual('luck');
   });
 
-  it('Updates 100', async () => {
-    let i = 100;
+  it('Updates 200', async () => {
+    let i = 200;
     while (i--)
       await Character.create({
         age: 90,
@@ -300,8 +301,8 @@ describe('', () => {
       { firstName: 'shmi' },
       { age: 500, firstName: 'shmi', lastName: 'Skywalker' }
     );
-    expect(shmis.length).toEqual(100);
+    expect(shmis.length).toEqual(200);
     const res = await Character.findMany({ age: 500 });
-    expect(res).toHaveLength(100);
+    expect(res).toHaveLength(200);
   });
 });

@@ -1,7 +1,7 @@
 import Blockweave from 'blockweave';
 import { JWKPublicInterface } from 'blockweave/dist/faces/lib/wallet';
 import { v4 as uuid } from 'uuid';
-import ArDB from './ardb';
+import { Query } from './query';
 import { Document, QueryDocumentDTO } from './faces/document';
 import { Tag } from './faces/tag';
 import ArdbTransaction from './models/transaction';
@@ -11,16 +11,16 @@ export class Schema<T = {}> {
   private blockweave: Blockweave;
   private wallet: JWKPublicInterface;
   private prefix = '__%$';
-  private ardb: ArDB;
+  private query: Query;
 
-  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface, ardb: ArDB) {
+  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface, query: Query) {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].required !== false) this.requriedFields.push(prop);
       this.schemaTypes[prop] = typeof schema[prop] === 'string' ? schema[prop] : schema[prop].type;
     });
     this.blockweave = blockweave;
     this.wallet = key;
-    this.ardb = ardb;
+    this.query = query;
   }
 
   async create(data: T): Promise<Document & T> {
@@ -40,7 +40,7 @@ export class Schema<T = {}> {
   }
 
   async findById(id: string): Promise<Document & T> {
-    const tx = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
+    const tx = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
 
     if (!tx) return undefined;
 
@@ -58,7 +58,7 @@ export class Schema<T = {}> {
   async findOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document & T> {
     const filterTags = this.formatFilter(filter);
 
-    const tx = (await this.ardb.search('transactions').tags(filterTags).findOne()) as ArdbTransaction;
+    const tx = (await this.query.tags(filterTags).findOne()) as ArdbTransaction;
     if (!tx) return undefined;
 
     const data = this.formatTags(tx.tags);
@@ -77,7 +77,7 @@ export class Schema<T = {}> {
   async findMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document[] & T[]> {
     const filterTags = this.formatFilter(filter);
 
-    const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
+    const txs = (await this.query.tags(filterTags).findAll()) as ArdbTransaction[];
     if (!txs?.length) return undefined;
 
     const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
@@ -104,7 +104,7 @@ export class Schema<T = {}> {
   }
 
   async history(id: string): Promise<Document[] & T[]> {
-    const txs = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findAll()) as ArdbTransaction[];
+    const txs = (await this.query.tag(`${this.prefix}_id`, id).findAll()) as ArdbTransaction[];
 
     if (!txs?.length) return undefined;
     const transactions = [];
@@ -126,7 +126,7 @@ export class Schema<T = {}> {
 
   async updateById(id: string, update: T): Promise<Document & T> {
     this.validate(update);
-    const oldTx = (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
+    const oldTx = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
 
     if (!oldTx) return undefined;
 
@@ -140,7 +140,7 @@ export class Schema<T = {}> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
 
-    const oldTx = (await this.ardb.search('transactions').tags(filterTags).findOne()) as ArdbTransaction;
+    const oldTx = (await this.query.tags(filterTags).findOne()) as ArdbTransaction;
     if (!oldTx) return undefined;
 
     const oldData = this.formatTags(oldTx.tags);
@@ -154,7 +154,7 @@ export class Schema<T = {}> {
   async updateMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document[] & T[]> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
-    const txs = (await this.ardb.search('transactions').tags(filterTags).findAll()) as ArdbTransaction[];
+    const txs = (await this.query.tags(filterTags).findAll()) as ArdbTransaction[];
     if (!txs?.length) return undefined;
 
     const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
@@ -200,10 +200,7 @@ export class Schema<T = {}> {
     }));
   }
   private async isLastV(id: string, v: number): Promise<boolean> {
-    const lastTxVersion = (await this.ardb
-      .search('transactions')
-      .tag(`${this.prefix}_id`, id)
-      .findOne()) as ArdbTransaction;
+    const lastTxVersion = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
 
     const lastV = lastTxVersion.tags.find((tag) => tag.name === `${this.prefix}_v`).value;
 
@@ -213,10 +210,7 @@ export class Schema<T = {}> {
   private async getLastVTxData(txsId): Promise<Document[] & T[]> {
     return (
       await Promise.all(
-        txsId.map(
-          async (id) =>
-            (await this.ardb.search('transactions').tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction
-        )
+        txsId.map(async (id) => (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction)
       )
     ).map((tx: ArdbTransaction) => this.formatTags(tx.tags));
   }

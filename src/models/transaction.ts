@@ -23,8 +23,6 @@ export default class ArdbTransaction implements GQLTransactionInterface {
   private _block: GQLBlockInterface;
   private _parent: { id: string };
 
-  private arweave: Arweave | Blockweave;
-
   // Getters
   public get id(): string {
     if (!this._id) log.show("ID wasn't defined, make sure you have selected to return it.");
@@ -81,7 +79,7 @@ export default class ArdbTransaction implements GQLTransactionInterface {
     return this._parent;
   }
 
-  constructor(obj: Partial<GQLTransactionInterface>, arweave: Arweave | Blockweave) {
+  constructor(obj: Partial<GQLTransactionInterface>) {
     this._id = obj.id;
     this._anchor = obj.anchor;
     this._signature = obj.signature;
@@ -96,7 +94,5 @@ export default class ArdbTransaction implements GQLTransactionInterface {
     if (obj.parent && obj.parent.id) {
       this._parent = obj.parent;
     }
-
-    this.arweave = arweave;
   }
 }
