@@ -5,9 +5,11 @@ import { Query } from './query';
 import { Document, QueryDocumentDTO } from './faces/document';
 import { Tag } from './faces/tag';
 import ArdbTransaction from './models/transaction';
+import { GQLTagInterface } from './faces/gql';
 export class Schema<T = {}> {
   private schemaTypes = {};
   private requriedFields: string[] = [];
+  private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
   private blockweave: Blockweave;
   private wallet: JWKPublicInterface;
   private prefix = '__%$';
@@ -16,6 +18,7 @@ export class Schema<T = {}> {
   constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface, query: Query) {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].required !== false) this.requriedFields.push(prop);
+      if (schema[prop].indexed !== false) this.indexedFields.push(prop);
       this.schemaTypes[prop] = typeof schema[prop] === 'string' ? schema[prop] : schema[prop].type;
     });
     this.blockweave = blockweave;
@@ -25,24 +28,43 @@ export class Schema<T = {}> {
 
   async create(data: T): Promise<Document & T> {
     this.validate(data);
-    const tx = await this.blockweave.createTransaction({ data: `${Math.random().toString().slice(-4)}` }, this.wallet);
+
     let id = uuid();
     while (await this.findById(id)) id = uuid();
     data[`_id`] = id;
     data[`_v`] = 1;
     data[`_createdAt`] = new Date().toISOString();
+
+    const notIndexed = [];
+    const tags = [];
+    let txData = `${Math.random().toString().slice(-4)}`;
+
     Object.keys(data).forEach((key) => {
-      tx.addTag(`${this.prefix}${key}`, data[key]);
+      if (this.indexedFields.includes(key)) tags.push({ [`${this.prefix}${key}`]: data[key] });
+      else notIndexed.push({ name: `${this.prefix}${key}`, value: data[key] });
     });
+    if (notIndexed.length) txData = JSON.stringify(notIndexed);
+
+    const tx = await this.blockweave.createTransaction({ data: txData }, this.wallet);
+
+    tags.forEach((tag) => {
+      const key = Object.keys(tag)[0];
+      tx.addTag(key, tag[key]);
+    });
+
+    if (notIndexed.length) tx.addTag(`${this.prefix}notIndexedData`, '1');
     await tx.signAndPost();
 
     return data;
   }
 
-  async findById(id: string): Promise<Document & T> {
-    const tx = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
-
+  async findById(id: string, opt = { getData: false }): Promise<Document & T> {
+    const tx = await this.query.tag(`${this.prefix}_id`, id).findOne();
     if (!tx) return undefined;
+
+    if (opt.getData && this.notIndexedDataAvailable(tx)) {
+      await this.addDataToTags(tx);
+    }
 
     const data = this.formatTags(tx.tags);
 
@@ -55,16 +77,20 @@ export class Schema<T = {}> {
 
     return data;
   }
-  async findOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document & T> {
+  async findOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, opt = { getData: false }): Promise<Document & T> {
     const filterTags = this.formatFilter(filter);
 
-    const tx = (await this.query.tags(filterTags).findOne()) as ArdbTransaction;
+    const tx = await this.query.tags(filterTags).findOne();
     if (!tx) return undefined;
 
-    const data = this.formatTags(tx.tags);
+    let data = this.formatTags(tx.tags);
 
     if (!(await this.isLastV(data[`_id`], data[`_v`]))) return undefined;
 
+    if (opt.getData && this.notIndexedDataAvailable(tx)) {
+      await this.addDataToTags(tx);
+      data = this.formatTags(tx.tags);
+    }
     const minedAt = tx.block?.timestamp;
     if (minedAt) {
       data._minedAt = new Date(minedAt * 1000);
@@ -74,10 +100,13 @@ export class Schema<T = {}> {
 
     return data;
   }
-  async findMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }): Promise<Document[] & T[]> {
+  async findMany(
+    filter: QueryDocumentDTO & { [P in keyof T]?: T[P] },
+    opt = { getData: false }
+  ): Promise<Document[] & T[]> {
     const filterTags = this.formatFilter(filter);
 
-    const txs = (await this.query.tags(filterTags).findAll()) as ArdbTransaction[];
+    const txs = await this.query.tags(filterTags).findAll();
     if (!txs?.length) return undefined;
 
     const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
@@ -85,11 +114,15 @@ export class Schema<T = {}> {
 
     const transactions = [];
     for (const tx of txs) {
-      const txData = this.formatTags(tx.tags);
+      let txData = this.formatTags(tx.tags);
 
       const lastTx = lastTxsData.find((Tx) => Tx._id === txData._id && Tx._v === txData._v);
 
       if (lastTx) {
+        if (opt.getData && this.notIndexedDataAvailable(tx)) {
+          await this.addDataToTags(tx);
+          txData = this.formatTags(tx.tags);
+        }
         const minedAt = tx.block?.timestamp;
         if (minedAt) {
           txData._minedAt = new Date(minedAt * 1000);
@@ -103,12 +136,15 @@ export class Schema<T = {}> {
     return transactions;
   }
 
-  async history(id: string): Promise<Document[] & T[]> {
-    const txs = (await this.query.tag(`${this.prefix}_id`, id).findAll()) as ArdbTransaction[];
+  async history(id: string, opt = { getData: false }): Promise<Document[] & T[]> {
+    const txs = await this.query.tag(`${this.prefix}_id`, id).findAll();
 
     if (!txs?.length) return undefined;
     const transactions = [];
     for (const tx of txs) {
+      if (opt.getData && this.notIndexedDataAvailable(tx)) {
+        await this.addDataToTags(tx);
+      }
       const txData = this.formatTags(tx.tags);
 
       const minedAt = tx.block?.timestamp;
@@ -126,7 +162,7 @@ export class Schema<T = {}> {
 
   async updateById(id: string, update: T): Promise<Document & T> {
     this.validate(update);
-    const oldTx = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
+    const oldTx = await this.query.tag(`${this.prefix}_id`, id).findOne();
 
     if (!oldTx) return undefined;
 
@@ -140,7 +176,7 @@ export class Schema<T = {}> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
 
-    const oldTx = (await this.query.tags(filterTags).findOne()) as ArdbTransaction;
+    const oldTx = await this.query.tags(filterTags).findOne();
     if (!oldTx) return undefined;
 
     const oldData = this.formatTags(oldTx.tags);
@@ -154,7 +190,7 @@ export class Schema<T = {}> {
   async updateMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document[] & T[]> {
     this.validate(update);
     const filterTags = this.formatFilter(filter);
-    const txs = (await this.query.tags(filterTags).findAll()) as ArdbTransaction[];
+    const txs = await this.query.tags(filterTags).findAll();
     if (!txs?.length) return undefined;
 
     const txsId = [...new Set(txs.map((tx) => this.getIdTags(tx.tags)))];
@@ -200,19 +236,20 @@ export class Schema<T = {}> {
     }));
   }
   private async isLastV(id: string, v: number): Promise<boolean> {
-    const lastTxVersion = (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction;
+    const lastTxVersion = await this.query.tag(`${this.prefix}_id`, id).findOne();
 
     const lastV = lastTxVersion.tags.find((tag) => tag.name === `${this.prefix}_v`).value;
 
     return lastV === v.toString();
   }
+  private notIndexedDataAvailable(tx: ArdbTransaction) {
+    return !!tx.tags.find((tag) => tag.name === `${this.prefix}_v`);
+  }
 
   private async getLastVTxData(txsId): Promise<Document[] & T[]> {
-    return (
-      await Promise.all(
-        txsId.map(async (id) => (await this.query.tag(`${this.prefix}_id`, id).findOne()) as ArdbTransaction)
-      )
-    ).map((tx: ArdbTransaction) => this.formatTags(tx.tags));
+    return (await Promise.all(txsId.map(async (id) => await this.query.tag(`${this.prefix}_id`, id).findOne()))).map(
+      (tx: ArdbTransaction) => this.formatTags(tx.tags)
+    );
   }
 
   private convertType(data: Document) {
@@ -226,15 +263,35 @@ export class Schema<T = {}> {
 
   private async createNewVersion(oldData: Document, update: T): Promise<Document & T> {
     const updatedData: Document & T = { ...update };
-    const tx = await this.blockweave.createTransaction({ data: `${Math.random().toString().slice(-4)}` }, this.wallet);
     updatedData._id = oldData._id;
     updatedData._v = parseInt(oldData._v.toString(), 10) + 1;
     updatedData._createdAt = new Date();
+
+    const notIndexed = [];
+    const tags = [];
+    let txData = `${Math.random().toString().slice(-4)}`;
+
     Object.keys(updatedData).forEach((key) => {
-      tx.addTag(`${this.prefix}${key}`, updatedData[key]);
+      if (this.indexedFields.includes(key)) tags.push({ [`${this.prefix}${key}`]: updatedData[key] });
+      else notIndexed.push({ name: `${this.prefix}${key}`, value: updatedData[key] });
+    });
+    if (notIndexed.length) txData = JSON.stringify(notIndexed);
+
+    const tx = await this.blockweave.createTransaction({ data: txData }, this.wallet);
+
+    tags.forEach((tag) => {
+      const key = Object.keys(tag)[0];
+      tx.addTag(key, tag[key]);
     });
     await tx.signAndPost();
 
     return updatedData;
+  }
+
+  private async addDataToTags(tx) {
+    const smth = await this.blockweave.transactions.get(tx.id);
+    const enc = new TextDecoder('utf-8');
+    const notIndexedData = JSON.parse(enc.decode(smth.data)) as GQLTagInterface[];
+    notIndexedData.forEach((nid) => tx.tags.push(nid));
   }
 }

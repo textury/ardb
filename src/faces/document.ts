@@ -3,6 +3,7 @@ export interface Document {
   _v?: number;
   _createdAt?: Date;
   _minedAt?: Date;
+  notIndexedData?: string;
 }
 
 export interface QueryDocumentDTO {
