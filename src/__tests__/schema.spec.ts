@@ -308,7 +308,7 @@ describe('SCHEMA', () => {
     expect(res).toHaveLength(200);
   });
 
-  it('Create a "document" with notIndexed data', async () => {
+  it('Creates a "document" with notIndexed data', async () => {
     const luck = await Character.create({
       age: 102,
       firstName: 'luck',
@@ -331,7 +331,7 @@ describe('SCHEMA', () => {
     expect(sky.desc).toEqual('this is a something stored inside data');
   });
 
-  it('Update a "document" with notIndexed data', async () => {
+  it('Updates a "document" with notIndexed data', async () => {
     const luck = await Character.create({
       age: 102,
       firstName: 'luck',
@@ -375,7 +375,7 @@ describe('SCHEMA', () => {
     expect(sky.desc).toEqual('123456');
   });
 
-  it('Get a "document" with notIndexed data by filter', async () => {
+  it('Gets a "document" with notIndexed data by filter', async () => {
     const luck = await Character.create({
       age: 205,
       firstName: 'yoda',
@@ -398,7 +398,7 @@ describe('SCHEMA', () => {
     expect(sky.desc).toEqual('1');
   });
 
-  it('Get Many "document" with notIndexed data ', async () => {
+  it('Gets Many "document" with notIndexed data ', async () => {
     await Character.create({
       age: 206,
       firstName: 'yoda',
@@ -431,7 +431,7 @@ describe('SCHEMA', () => {
     expect(sky[1].desc).toEqual('2');
     expect(sky[2].desc).toEqual('1');
   });
-  it('Get history of "document" with notIndexed data', async () => {
+  it('Gets history of "document" with notIndexed data', async () => {
     const luck = await Character.create({
       age: 103,
       firstName: 'luck',
@@ -455,7 +455,7 @@ describe('SCHEMA', () => {
     expect(sky[1].desc).toEqual('1');
   });
 
-  it('Update a "document" with notIndexed data by filter', async () => {
+  it('Updates a "document" with notIndexed data by filter', async () => {
     const luck = await Character.create({
       age: 107,
       firstName: 'luck',
@@ -492,7 +492,7 @@ describe('SCHEMA', () => {
     expect(sky.desc).toEqual('123456');
   });
 
-  it('Update Many "document" with notIndexed data ', async () => {
+  it('Updates Many "document" with notIndexed data ', async () => {
     await Character.create({
       age: 207,
       firstName: 'yoda',
@@ -538,5 +538,31 @@ describe('SCHEMA', () => {
     expect(sky[0].desc).toEqual('123456');
     expect(sky[1].desc).toEqual('123456');
     expect(sky[2].desc).toEqual('123456');
+  });
+
+  it('Gets data with getData', async () => {
+    const yoda = await Character.create({
+      age: 209,
+      firstName: 'yoda',
+      lastName: 'jedi',
+      desc: '1',
+    });
+
+    let sky = await Character.findById(yoda._id);
+    expect(sky.age).toEqual(209);
+    expect(sky.firstName).toEqual('yoda');
+    expect(sky.lastName).toEqual('jedi');
+    expect(sky.desc).toBeUndefined()
+    await Character.getData(sky)
+    expect(sky.desc).toEqual('1')
+
+     sky = await Character.findOne({age:209});
+     expect(sky.age).toEqual(209);
+    expect(sky.firstName).toEqual('yoda');
+    expect(sky.lastName).toEqual('jedi');
+    expect(sky.desc).toBeUndefined()
+    await Character.getData(sky)
+    expect(sky.desc).toEqual('1')
+
   });
 });
