@@ -552,17 +552,16 @@ describe('SCHEMA', () => {
     expect(sky.age).toEqual(209);
     expect(sky.firstName).toEqual('yoda');
     expect(sky.lastName).toEqual('jedi');
-    expect(sky.desc).toBeUndefined()
-    await Character.getData(sky)
-    expect(sky.desc).toEqual('1')
+    expect(sky.desc).toBeUndefined();
+    await Character.getData(sky);
+    expect(sky.desc).toEqual('1');
 
-     sky = await Character.findOne({age:209});
-     expect(sky.age).toEqual(209);
+    sky = await Character.findOne({ age: 209 });
+    expect(sky.age).toEqual(209);
     expect(sky.firstName).toEqual('yoda');
     expect(sky.lastName).toEqual('jedi');
-    expect(sky.desc).toBeUndefined()
-    await Character.getData(sky)
-    expect(sky.desc).toEqual('1')
-
+    expect(sky.desc).toBeUndefined();
+    await Character.getData(sky);
+    expect(sky.desc).toEqual('1');
   });
 });

@@ -67,7 +67,7 @@ export class Schema<T = {}> {
     }
 
     const data = this.formatTags(tx.tags);
-    data._txId = tx.id
+    data._txId = tx.id;
 
     const minedAt = tx.block?.timestamp;
     if (minedAt) {
@@ -76,16 +76,15 @@ export class Schema<T = {}> {
 
     this.convertType(data);
 
-    return data
-   
+    return data;
   }
-  
+
   async findOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, opt = { getData: false }): Promise<Document & T> {
     const filterTags = this.formatFilter(filter);
 
     const tx = await this.query.tags(filterTags).findOne();
     if (!tx) return undefined;
-    
+
     let data = this.formatTags(tx.tags);
 
     if (!(await this.isLastV(data[`_id`], data[`_v`]))) return undefined;
@@ -94,7 +93,7 @@ export class Schema<T = {}> {
       await this.addDataToTags(tx);
       data = this.formatTags(tx.tags);
     }
-    data._txId = tx.id
+    data._txId = tx.id;
 
     const minedAt = tx.block?.timestamp;
     if (minedAt) {
@@ -141,16 +140,16 @@ export class Schema<T = {}> {
     return transactions;
   }
 
-  async getData(document:Document & T){
+  async getData(document: Document & T) {
     const tx = await this.blockweave.transactions.get(document._txId);
     const enc = new TextDecoder('utf-8');
     const notIndexedData = JSON.parse(enc.decode(tx.data)) as GQLTagInterface[];
-    notIndexedData.forEach(data => {
+    notIndexedData.forEach((data) => {
       const prop = data.name.split(this.prefix)[1];
-      Object.assign(document, {[prop]: data.value});
-    })
+      Object.assign(document, { [prop]: data.value });
+    });
   }
-  
+
   async history(id: string, opt = { getData: false }): Promise<Document[] & T[]> {
     const txs = await this.query.tag(`${this.prefix}_id`, id).findAll();
 
