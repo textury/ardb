@@ -1,7 +1,6 @@
 import Blockweave from 'blockweave';
-import { Query } from '../query';
 import Arlocal from 'arlocal';
-import { Schema } from '../schema';
+import Schema from '../ardb';
 describe('SCHEMA', () => {
   interface ICharacter {
     age: number;
@@ -11,7 +10,6 @@ describe('SCHEMA', () => {
     desc?: string;
   }
   let blockweave: Blockweave;
-  let query;
   let key;
   let Character: Schema<ICharacter>;
   let arlocal;
@@ -19,8 +17,6 @@ describe('SCHEMA', () => {
     arlocal = new Arlocal(1984, true);
     await arlocal.start();
     blockweave = new Blockweave({ url: 'http://localhost:1984' });
-    // @ts-ignore
-    query = new Query(blockweave);
     key = await blockweave.wallets.generate();
     Character = new Schema<ICharacter>(
       {
@@ -31,8 +27,7 @@ describe('SCHEMA', () => {
         desc: { type: 'string', required: false, indexed: false },
       },
       blockweave,
-      key,
-      query
+      key
     );
   });
   afterAll(async () => {

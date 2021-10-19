@@ -6,7 +6,7 @@ import { Document, QueryDocumentDTO } from './faces/document';
 import { Tag } from './faces/tag';
 import ArdbTransaction from './models/transaction';
 import { GQLTagInterface } from './faces/gql';
-export class Schema<T = {}> {
+export default class Schema<T = {}> {
   private schemaTypes = {};
   private requriedFields: string[] = [];
   private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
@@ -15,7 +15,7 @@ export class Schema<T = {}> {
   private prefix = '__%$';
   private query: Query;
 
-  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface, query: Query) {
+  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface) {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].required !== false) this.requriedFields.push(prop);
       if (schema[prop].indexed !== false) this.indexedFields.push(prop);
@@ -23,7 +23,7 @@ export class Schema<T = {}> {
     });
     this.blockweave = blockweave;
     this.wallet = key;
-    this.query = query;
+    this.query = new Query(blockweave);
   }
 
   async create(data: T): Promise<Document & T> {
