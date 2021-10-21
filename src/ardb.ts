@@ -127,6 +127,8 @@ export default class Schema<T = {}> {
           await this.addDataToTags(tx);
           txData = this.formatTags(tx.tags);
         }
+        txData._txId = tx.id;
+
         const minedAt = tx.block?.timestamp;
         if (minedAt) {
           txData._minedAt = new Date(minedAt * 1000);
@@ -141,6 +143,8 @@ export default class Schema<T = {}> {
   }
 
   async getData(document: Document & T) {
+    if (!document.notIndexedData) return;
+
     const tx = await this.blockweave.transactions.get(document._txId);
     const enc = new TextDecoder('utf-8');
     const notIndexedData = JSON.parse(enc.decode(tx.data)) as GQLTagInterface[];

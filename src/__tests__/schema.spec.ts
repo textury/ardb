@@ -13,9 +13,8 @@ describe('SCHEMA', () => {
   let key;
   let Character: Schema<ICharacter>;
   let arlocal;
+  let luck;
   beforeAll(async () => {
-    arlocal = new Arlocal(1984, true);
-    await arlocal.start();
     blockweave = new Blockweave({ url: 'http://localhost:1984' });
     key = await blockweave.wallets.generate();
     Character = new Schema<ICharacter>(
@@ -30,26 +29,25 @@ describe('SCHEMA', () => {
       key
     );
   });
-  afterAll(async () => {
-    await arlocal.stop();
-  });
-  it('Create a "document" without indexed data', async () => {
-    const luck = await Character.create({
+  beforeEach(async () => {
+    arlocal = new Arlocal(1984, true, `${process.cwd()}/database/${Math.random().toPrecision(4)}`);
+    await arlocal.start();
+
+    luck = await Character.create({
       age: 100,
       firstName: 'luck',
       lastName: 'Skywalker',
     });
+  });
+  afterEach(async () => {
+    await arlocal.stop();
+  });
+  it('Create a "document" without indexed data', async () => {
     expect(luck.age).toEqual(100);
     expect(luck.firstName).toEqual('luck');
     expect(luck.lastName).toEqual('Skywalker');
   });
   it('Get a "document" by id', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
-
     const sky = await Character.findById(luck._id);
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
@@ -57,11 +55,6 @@ describe('SCHEMA', () => {
     expect(luck.age).toEqual(sky.age);
   });
   it('Update a "document"', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
     let newLuck = await Character.updateById(luck._id, {
       age: 99,
       firstName: 'luck',
@@ -90,11 +83,6 @@ describe('SCHEMA', () => {
     expect(newLuck._v).toEqual(3);
   });
   it('Get a "document" from filter using age', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
     const sky = await Character.findOne({ age: 100 });
 
     expect(luck._id).toEqual(sky._id);
@@ -105,12 +93,6 @@ describe('SCHEMA', () => {
     expect(luck._v).toEqual(1);
   });
   it('Get a "document" from filter using age and firstName', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
-
     const sky = await Character.findOne({ age: 100, firstName: 'luck' });
     expect(luck._id).toEqual(sky._id);
     expect(luck.firstName).toEqual(sky.firstName);
@@ -120,20 +102,10 @@ describe('SCHEMA', () => {
     expect(luck._v).toEqual(1);
   });
   it('returns undefined when not found', async () => {
-    await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
     const sky = await Character.findOne({ age: 2 });
     expect(sky).toBeUndefined();
   });
   it("returns undefined when it's not the last version", async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
     let newLuck = await Character.updateById(luck._id, {
       age: 99,
       firstName: 'luck',
@@ -164,12 +136,7 @@ describe('SCHEMA', () => {
     sky = await Character.findOne({ father: 'Anakin Skywalker' });
     expect(sky).toBeUndefined();
   });
-  it('update a "document" with filter ', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
+  it('update a "document" with filter', async () => {
     let newLuck = await Character.updateOne(
       { age: 100 },
       {
@@ -201,27 +168,28 @@ describe('SCHEMA', () => {
   });
 
   it('returns many', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'SKywalker',
+    const obiWan = await Character.create({
+      age: 136,
+      firstName: 'Obi-Wan',
+      lastName: 'Kenobi',
     });
-    const anakin = await Character.create({
-      age: 153,
-      firstName: 'anakin',
-      lastName: 'SKywalker',
+    await Character.create({
+      age: 136,
+      firstName: 'Obi-Wan',
+      lastName: 'Kenobi',
     });
 
-    let skywalkers = await Character.findMany({ lastName: 'SKywalker' });
-    expect(skywalkers[0].firstName).toEqual(anakin.firstName);
-    expect(skywalkers[0].age).toEqual(anakin.age);
+    let skywalkers = await Character.findMany({ lastName: 'Kenobi' });
+    expect(skywalkers).toHaveLength(2);
+    expect(skywalkers[0].firstName).toEqual(obiWan.firstName);
+    expect(skywalkers[0].age).toEqual(obiWan.age);
     expect(skywalkers[0]._v).toEqual(1);
-    expect(skywalkers[1].firstName).toEqual(luck.firstName);
-    expect(skywalkers[1].age).toEqual(luck.age);
+    expect(skywalkers[1].firstName).toEqual(obiWan.firstName);
+    expect(skywalkers[1].age).toEqual(obiWan.age);
     expect(skywalkers[1]._v).toEqual(1);
 
     await Character.updateOne(
-      { age: 153 },
+      { firstName: 'Obi-Wan' },
       {
         age: 153,
         firstName: 'anakin',
@@ -229,18 +197,14 @@ describe('SCHEMA', () => {
       }
     );
     await blockweave.api.get('mine');
-    skywalkers = await Character.findMany({ lastName: 'SKywalker' });
+    skywalkers = await Character.findMany({ lastName: 'Kenobi' });
     expect(skywalkers?.length).toEqual(1);
-    expect(skywalkers[0]._minedAt).toBeDefined();
+    expect(skywalkers[0].firstName).toEqual(obiWan.firstName);
+    expect(skywalkers[0].lastName).toEqual(obiWan.lastName);
+    expect(skywalkers[0].age).toEqual(obiWan.age);
   });
 
   it('Gets a document history', async () => {
-    const luck = await Character.create({
-      age: 100,
-      firstName: 'luck',
-      lastName: 'Skywalker',
-    });
-
     await Character.updateById(luck._id, {
       age: 99,
       firstName: 'luck',
@@ -256,13 +220,13 @@ describe('SCHEMA', () => {
     expect(history[0]._minedAt).toBeDefined();
   });
   it('Updates many', async () => {
-    const luck1 = await Character.create({
+    const shmi1 = await Character.create({
       age: 90,
       firstName: 'shmi',
       lastName: 'Skywalker',
     });
 
-    const luck2 = await Character.create({
+    const shmi2 = await Character.create({
       age: 68,
       firstName: 'shmi',
       lastName: 'Skywalker',
@@ -277,8 +241,8 @@ describe('SCHEMA', () => {
     expect(lucks[1].age).toEqual(100);
     expect(lucks[0].firstName).toEqual('luck');
     expect(lucks[1].firstName).toEqual('luck');
-    const sky1 = await Character.findById(luck1._id);
-    const sky2 = await Character.findById(luck2._id);
+    const sky1 = await Character.findById(shmi1._id);
+    const sky2 = await Character.findById(shmi2._id);
     expect(sky2.age).toEqual(100);
     expect(sky2.firstName).toEqual('luck');
     expect(sky1.age).toEqual(100);
@@ -304,21 +268,21 @@ describe('SCHEMA', () => {
   });
 
   it('Creates a "document" with notIndexed data', async () => {
-    const luck = await Character.create({
+    const luck1 = await Character.create({
       age: 102,
       firstName: 'luck',
       lastName: 'Skywalker',
       desc: 'this is a something stored inside data',
     });
 
-    let sky = await Character.findById(luck._id);
+    let sky = await Character.findById(luck1._id);
 
     expect(sky.age).toEqual(102);
     expect(sky.firstName).toEqual('luck');
     expect(sky.lastName).toEqual('Skywalker');
     expect(sky.desc).toBeUndefined();
 
-    sky = await Character.findById(luck._id, { getData: true });
+    sky = await Character.findById(luck1._id, { getData: true });
 
     expect(sky.age).toEqual(102);
     expect(sky.firstName).toEqual('luck');
@@ -327,42 +291,42 @@ describe('SCHEMA', () => {
   });
 
   it('Updates a "document" with notIndexed data', async () => {
-    const luck = await Character.create({
+    const luck1 = await Character.create({
       age: 102,
       firstName: 'luck',
       lastName: 'Skywalker',
       desc: 'this is a something stored inside data',
     });
 
-    let sky = await Character.findById(luck._id);
+    let sky = await Character.findById(luck1._id);
 
     expect(sky.age).toEqual(102);
     expect(sky.firstName).toEqual('luck');
     expect(sky.lastName).toEqual('Skywalker');
     expect(sky.desc).toBeUndefined();
 
-    sky = await Character.findById(luck._id, { getData: true });
+    sky = await Character.findById(luck1._id, { getData: true });
 
     expect(sky.age).toEqual(102);
     expect(sky.firstName).toEqual('luck');
     expect(sky.lastName).toEqual('Skywalker');
     expect(sky.desc).toEqual('this is a something stored inside data');
 
-    await Character.updateById(luck._id, {
+    await Character.updateById(luck1._id, {
       age: 103,
       firstName: 'luck',
       lastName: 'Skywalker',
       desc: '123456',
     });
 
-    sky = await Character.findById(luck._id);
+    sky = await Character.findById(luck1._id);
 
     expect(sky.age).toEqual(103);
     expect(sky.firstName).toEqual('luck');
     expect(sky.lastName).toEqual('Skywalker');
     expect(sky.desc).toBeUndefined();
 
-    sky = await Character.findById(luck._id, { getData: true });
+    sky = await Character.findById(luck1._id, { getData: true });
 
     expect(sky.age).toEqual(103);
     expect(sky.firstName).toEqual('luck');
@@ -371,7 +335,7 @@ describe('SCHEMA', () => {
   });
 
   it('Gets a "document" with notIndexed data by filter', async () => {
-    const luck = await Character.create({
+    const yoda = await Character.create({
       age: 205,
       firstName: 'yoda',
       lastName: 'jedi',
@@ -427,31 +391,31 @@ describe('SCHEMA', () => {
     expect(sky[2].desc).toEqual('1');
   });
   it('Gets history of "document" with notIndexed data', async () => {
-    const luck = await Character.create({
+    const luck1 = await Character.create({
       age: 103,
       firstName: 'luck',
       lastName: 'Skywalker',
       desc: '1',
     });
 
-    await Character.updateById(luck._id, {
+    await Character.updateById(luck1._id, {
       age: 103,
       firstName: 'luck',
       lastName: 'Skywalker',
       desc: '2',
     });
 
-    let sky = await Character.history(luck._id);
+    let sky = await Character.history(luck1._id);
     expect(sky[0].desc).toBeUndefined();
     expect(sky[1].desc).toBeUndefined();
 
-    sky = await Character.history(luck._id, { getData: true });
+    sky = await Character.history(luck1._id, { getData: true });
     expect(sky[0].desc).toEqual('2');
     expect(sky[1].desc).toEqual('1');
   });
 
   it('Updates a "document" with notIndexed data by filter', async () => {
-    const luck = await Character.create({
+    const luck1 = await Character.create({
       age: 107,
       firstName: 'luck',
       lastName: 'Skywalker',
@@ -472,14 +436,14 @@ describe('SCHEMA', () => {
       }
     );
 
-    let sky = await Character.findById(luck._id);
+    let sky = await Character.findById(luck1._id);
 
     expect(sky.age).toEqual(103);
     expect(sky.firstName).toEqual('luck');
     expect(sky.lastName).toEqual('Skywalker');
     expect(sky.desc).toBeUndefined();
 
-    sky = await Character.findById(luck._id, { getData: true });
+    sky = await Character.findById(luck1._id, { getData: true });
 
     expect(sky.age).toEqual(103);
     expect(sky.firstName).toEqual('luck');
@@ -558,5 +522,31 @@ describe('SCHEMA', () => {
     expect(sky.desc).toBeUndefined();
     await Character.getData(sky);
     expect(sky.desc).toEqual('1');
+  });
+
+  it('Gets data with getData from an array of document', async () => {
+    await Character.create({
+      age: 110,
+      firstName: 'anakin',
+      lastName: 'skywalker',
+      desc: 'Obi-Wan, may the force be with you.',
+    });
+    await Character.create({
+      age: 110,
+      firstName: 'anakin',
+      lastName: 'skywalker',
+      desc: 'Obi-Wan, may the force be with you.',
+    });
+
+    const anakins = await Character.findMany({ firstName: 'anakin', lastName: 'skywalker' });
+    expect(anakins).toHaveLength(2);
+    expect(anakins[0].desc).toBeUndefined();
+    expect(anakins[1].desc).toBeUndefined();
+
+    await Character.getData(anakins[0]);
+    await Character.getData(anakins[1]);
+
+    expect(anakins[0].desc).toEqual('Obi-Wan, may the force be with you.');
+    expect(anakins[1].desc).toEqual('Obi-Wan, may the force be with you.');
   });
 });
