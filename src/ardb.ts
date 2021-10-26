@@ -10,6 +10,7 @@ export default class Schema<T = {}> {
   private schemaTypes = {};
   private requriedFields: string[] = [];
   private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
+  private relationFields: { [x: string]: Schema<T> }[] = [];
   private blockweave: Blockweave;
   private wallet: JWKPublicInterface;
   private prefix = '__%$';
@@ -19,6 +20,7 @@ export default class Schema<T = {}> {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].required !== false) this.requriedFields.push(prop);
       if (schema[prop].indexed !== false) this.indexedFields.push(prop);
+      if (schema[prop].ref) this.relationFields.push({ [prop]: schema[prop].ref });
       this.schemaTypes[prop] = typeof schema[prop] === 'string' ? schema[prop] : schema[prop].type;
     });
     this.blockweave = blockweave;
@@ -225,6 +227,13 @@ export default class Schema<T = {}> {
       }
     }
     return transactions;
+  }
+
+  async populate(document: Document & T) {
+    for (const relation of this.relationFields) {
+      const field = Object.keys(relation)[0];
+      document[field] = await relation[field].findById(document[field]);
+    }
   }
 
   private validate(data) {

@@ -1,6 +1,7 @@
 import Blockweave from 'blockweave';
 import Arlocal from 'arlocal';
 import Schema from '../ardb';
+import { Document } from '../faces/document';
 describe('SCHEMA', () => {
   interface ICharacter {
     age: number;
@@ -9,9 +10,15 @@ describe('SCHEMA', () => {
     father?: string;
     desc?: string;
   }
+  interface ILightsaber {
+    color: string;
+    power: number;
+    character: Document & ICharacter;
+  }
   let blockweave: Blockweave;
   let key;
   let Character: Schema<ICharacter>;
+  let Lightsaber: Schema<ILightsaber>;
   let arlocal;
   let luck;
   beforeAll(async () => {
@@ -24,6 +31,15 @@ describe('SCHEMA', () => {
         lastName: { type: 'string' },
         father: { type: 'string', required: false },
         desc: { type: 'string', required: false, indexed: false },
+      },
+      blockweave,
+      key
+    );
+    Lightsaber = new Schema<ILightsaber>(
+      {
+        color: 'string',
+        power: 'number',
+        character: { type: 'string', ref: Character },
       },
       blockweave,
       key
@@ -548,5 +564,25 @@ describe('SCHEMA', () => {
 
     expect(anakins[0].desc).toEqual('Obi-Wan, may the force be with you.');
     expect(anakins[1].desc).toEqual('Obi-Wan, may the force be with you.');
+  });
+
+  it('Create a doc with relation', async () => {
+    const saber = await Lightsaber.create({
+      power: 110,
+      color: 'red',
+      character: luck._id,
+    });
+    expect(saber.power).toEqual(110);
+    expect(saber.color).toEqual('red');
+    expect(saber.character).toEqual(luck._id);
+    const lightsaber = await Lightsaber.findById(saber._id);
+    expect(lightsaber.power).toEqual(110);
+    expect(lightsaber.color).toEqual('red');
+    expect(lightsaber.character).toEqual(luck._id);
+    await Lightsaber.populate(lightsaber);
+    expect(lightsaber.character._id).toEqual(luck._id);
+    expect(lightsaber.character.age).toEqual(luck.age);
+    expect(lightsaber.character.firstName).toEqual(luck.firstName);
+    expect(lightsaber.character.lastName).toEqual(luck.lastName);
   });
 });
