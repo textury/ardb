@@ -20,8 +20,8 @@
     "postversion": "git push && git push --tags"
   },
   "dependencies": {
-    "ardk": "^1.0.10",
-    "arweave": "^1.10.15"
+    "arweave": "^1.10.15",
+    "blockweave": "^1.0.17"
   },
   "devDependencies": {
     "@types/jest": "^27.0.1",
