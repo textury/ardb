@@ -6,11 +6,12 @@ import { Document, QueryDocumentDTO } from './faces/document';
 import { Tag } from './faces/tag';
 import ArdbTransaction from './models/transaction';
 import { GQLTagInterface } from './faces/gql';
+import { Store } from './store';
 export default class Schema<T = {}> {
   private schemaTypes = {};
   private requriedFields: string[] = [];
   private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
-  private relationFields: { [x: string]: Schema<T> }[] = [];
+  private relationFields: { field: string; ref: string }[] = [];
   private blockweave: Blockweave;
   private wallet: JWKPublicInterface;
   private prefix = '__%$';
@@ -20,7 +21,7 @@ export default class Schema<T = {}> {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].required !== false) this.requriedFields.push(prop);
       if (schema[prop].indexed !== false) this.indexedFields.push(prop);
-      if (schema[prop].ref) this.relationFields.push({ [prop]: schema[prop].ref });
+      if (schema[prop].ref) this.relationFields.push({ field: prop, ref: schema[prop].ref });
       this.schemaTypes[prop] = typeof schema[prop] === 'string' ? schema[prop] : schema[prop].type;
     });
     this.blockweave = blockweave;
@@ -230,9 +231,10 @@ export default class Schema<T = {}> {
   }
 
   async populate(document: Document & T) {
-    for (const relation of this.relationFields) {
-      const field = Object.keys(relation)[0];
-      document[field] = await relation[field].findById(document[field]);
+    for (const { field, ref } of this.relationFields) {
+      const schema = Store.get(ref);
+
+      document[field] = await schema.findById(document[field]);
     }
   }
 
@@ -322,3 +324,7 @@ export default class Schema<T = {}> {
     notIndexedData.forEach((nid) => tx.tags.push(nid));
   }
 }
+
+export const registerSchema = (name: string, schema: Schema) => {
+  Store.add(name, schema);
+};

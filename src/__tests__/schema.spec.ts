@@ -1,6 +1,6 @@
 import Blockweave from 'blockweave';
 import Arlocal from 'arlocal';
-import Schema from '../ardb';
+import Schema, { registerSchema } from '../ardb';
 import { Document } from '../faces/document';
 describe('SCHEMA', () => {
   interface ICharacter {
@@ -35,15 +35,17 @@ describe('SCHEMA', () => {
       blockweave,
       key
     );
+    registerSchema('Character', Character);
     Lightsaber = new Schema<ILightsaber>(
       {
         color: 'string',
         power: 'number',
-        character: { type: 'string', ref: Character },
+        character: { type: 'string', ref: 'Character' },
       },
       blockweave,
       key
     );
+    registerSchema('Lightsaber', Lightsaber);
   });
   beforeEach(async () => {
     arlocal = new Arlocal(1984, true, `${process.cwd()}/database/${Math.random().toPrecision(4)}`);
