@@ -1,7 +1,7 @@
 import Blockweave from 'blockweave';
 import Arlocal from 'arlocal';
 import Schema, { registerSchema } from '../ardb';
-import { Document } from '../faces/document';
+
 describe('SCHEMA', () => {
   interface ICharacter {
     age: number;
@@ -9,11 +9,13 @@ describe('SCHEMA', () => {
     lastName: string;
     father?: string;
     desc?: string;
+    friends?: string[];
+    saber?: any;
   }
   interface ILightsaber {
     color: string;
     power: number;
-    character: Document & ICharacter;
+    character: any;
   }
   let blockweave: Blockweave;
   let key;
@@ -31,6 +33,8 @@ describe('SCHEMA', () => {
         lastName: { type: 'string' },
         father: { type: 'string', required: false },
         desc: { type: 'string', required: false, indexed: false },
+        friends: { type: 'string[]', required: false, indexed: false },
+        saber: { type: 'string', required: false, ref: 'Lightsaber' },
       },
       blockweave,
       key
@@ -586,5 +590,95 @@ describe('SCHEMA', () => {
     expect(lightsaber.character.age).toEqual(luck.age);
     expect(lightsaber.character.firstName).toEqual(luck.firstName);
     expect(lightsaber.character.lastName).toEqual(luck.lastName);
+  });
+
+  it('Create a doc with relationship bidirectional', async () => {
+    const saber = await Lightsaber.create({
+      power: 110,
+      color: 'red',
+      character: luck._id,
+    });
+
+    luck = await Character.updateById(luck._id, {
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+      saber: saber._id,
+    });
+
+    const sky = await Character.findById(luck._id);
+    expect(sky.saber).toEqual(saber._id);
+    await Character.populate(sky);
+    expect(sky.saber._id).toEqual(saber._id);
+    expect(sky.saber.power).toEqual(saber.power);
+    expect(sky.saber.character).toEqual(saber.character);
+  });
+
+  it('Create a doc with an array', async () => {
+    const sky = await Character.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+      friends: ['Biggs Darklighter', 'C-3PO'],
+    });
+    expect(sky.age).toEqual(100);
+    expect(sky.firstName).toEqual('luck');
+    expect(sky.lastName).toEqual('Skywalker');
+    expect(sky.friends).toHaveLength(2);
+    expect(sky.friends[0]).toEqual('Biggs Darklighter');
+    expect(sky.friends[1]).toEqual('C-3PO');
+  });
+  it('array of Realtions', async () => {
+    const Character2 = new Schema<ICharacter>(
+      {
+        age: 'number',
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        saber: { type: 'string[]', ref: 'Lightsaber2' },
+      },
+      blockweave,
+      key
+    );
+    registerSchema('Character2', Character2);
+
+    const Lightsaber2 = new Schema<{ color: string; power: number }>(
+      {
+        color: 'string',
+        power: 'number',
+      },
+      blockweave,
+      key
+    );
+    registerSchema('Lightsaber2', Lightsaber2);
+
+    const saber1 = await Lightsaber2.create({
+      power: 110,
+      color: 'red',
+    });
+    const saber2 = await Lightsaber2.create({
+      power: 90,
+      color: 'green',
+    });
+
+    const sky = await Character2.create({
+      age: 100,
+      firstName: 'luck',
+      lastName: 'Skywalker',
+      saber: [saber1._id, saber2._id],
+    });
+    expect(sky.age).toEqual(100);
+    expect(sky.firstName).toEqual('luck');
+    expect(sky.lastName).toEqual('Skywalker');
+    expect(sky.saber).toHaveLength(2);
+    expect(sky.saber[0]).toEqual(saber1._id);
+    expect(sky.saber[1]).toEqual(saber2._id);
+    await Character2.populate(sky);
+    expect(sky.saber).toHaveLength(2);
+    expect(sky.saber[0]._id).toEqual(saber1._id);
+    expect(sky.saber[1]._id).toEqual(saber2._id);
+    expect(sky.saber[0].power).toEqual(saber1.power);
+    expect(sky.saber[1].power).toEqual(saber2.power);
+    expect(sky.saber[0].color).toEqual(saber1.color);
+    expect(sky.saber[1].color).toEqual(saber2.color);
   });
 });

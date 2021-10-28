@@ -9,7 +9,6 @@ import { GQLTagInterface } from './faces/gql';
 import { Store } from './store';
 export default class Schema<T = {}> {
   private schemaTypes = {};
-  private requriedFields: string[] = [];
   private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
   private relationFields: { field: string; ref: string }[] = [];
   private blockweave: Blockweave;
@@ -19,7 +18,6 @@ export default class Schema<T = {}> {
 
   constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface) {
     Object.keys(schema).forEach((prop) => {
-      if (schema[prop].required !== false) this.requriedFields.push(prop);
       if (schema[prop].indexed !== false) this.indexedFields.push(prop);
       if (schema[prop].ref) this.relationFields.push({ field: prop, ref: schema[prop].ref });
       this.schemaTypes[prop] = typeof schema[prop] === 'string' ? schema[prop] : schema[prop].type;
@@ -30,8 +28,6 @@ export default class Schema<T = {}> {
   }
 
   async create(data: T): Promise<Document & T> {
-    this.validate(data);
-
     let id = uuid();
     while (await this.findById(id)) id = uuid();
     data[`_id`] = id;
@@ -182,7 +178,6 @@ export default class Schema<T = {}> {
   }
 
   async updateById(id: string, update: T): Promise<Document & T> {
-    this.validate(update);
     const oldTx = await this.query.tag(`${this.prefix}_id`, id).findOne();
 
     if (!oldTx) return undefined;
@@ -194,7 +189,6 @@ export default class Schema<T = {}> {
     return updatedData;
   }
   async updateOne(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document & T> {
-    this.validate(update);
     const filterTags = this.formatFilter(filter);
 
     const oldTx = await this.query.tags(filterTags).findOne();
@@ -209,7 +203,6 @@ export default class Schema<T = {}> {
     return updatedData;
   }
   async updateMany(filter: QueryDocumentDTO & { [P in keyof T]?: T[P] }, update: T): Promise<Document[] & T[]> {
-    this.validate(update);
     const filterTags = this.formatFilter(filter);
     const txs = await this.query.tags(filterTags).findAll();
     if (!txs?.length) return undefined;
@@ -233,18 +226,17 @@ export default class Schema<T = {}> {
   async populate(document: Document & T) {
     for (const { field, ref } of this.relationFields) {
       const schema = Store.get(ref);
-
-      document[field] = await schema.findById(document[field]);
+      if (Array.isArray(document[field])) {
+        const tmp = [];
+        for (const id of document[field]) {
+          const doc = await schema.findById(id);
+          tmp.push(doc);
+        }
+        document[field] = tmp;
+      } else {
+        document[field] = await schema.findById(document[field]);
+      }
     }
-  }
-
-  private validate(data) {
-    const dataFields = Object.keys(data);
-    if (!this.requriedFields.every((field) => dataFields.includes(field))) throw new Error('required fields missing !');
-
-    dataFields.forEach((prop) => {
-      if (typeof data[prop] !== this.schemaTypes[prop]) throw new Error(`invalid ${prop} type`);
-    });
   }
 
   private formatTags(tags: Tag[]): Document & T {
