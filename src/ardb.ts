@@ -141,7 +141,7 @@ export default class Schema<T = {}> {
     return transactions;
   }
 
-  async getData(document: Document & T) {
+  async getData(document: Document & T): Promise<void> {
     if (!document.notIndexedData) return;
 
     const tx = await this.blockweave.transactions.get(document._txId);
