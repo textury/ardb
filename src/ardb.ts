@@ -224,17 +224,17 @@ export default class Schema<T = {}> {
   }
 
   async populate(document: Document & T) {
-    for (const { field, ref } of this.relationFields) {
-      const schema = Store.get(ref);
-      if (Array.isArray(document[field])) {
+    for (const relation of this.relationFields) {
+      const schema = Store.get(relation.ref);
+      if (Array.isArray(document[relation.field])) {
         const tmp = [];
-        for (const id of document[field]) {
+        for (const id of document[relation.field]) {
           const doc = await schema.findById(id);
           tmp.push(doc);
         }
-        document[field] = tmp;
+        document[relation.field] = tmp;
       } else {
-        document[field] = await schema.findById(document[field]);
+        document[relation.field] = await schema.findById(document[relation.field]);
       }
     }
   }
