@@ -12,11 +12,11 @@ export default class Schema<T = {}> {
   private indexedFields: string[] = [`_id`, `_v`, `_createdAt`];
   private relationFields: { field: string; ref: string }[] = [];
   private blockweave: Blockweave;
-  private wallet: JWKPublicInterface;
+  private wallet: JWKPublicInterface | 'use_wallet';
   private prefix = '__%$';
   private query: Query;
 
-  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface) {
+  constructor(schema: any = {}, blockweave: Blockweave, key: JWKPublicInterface | 'use_wallet') {
     Object.keys(schema).forEach((prop) => {
       if (schema[prop].indexed !== false) this.indexedFields.push(prop);
       if (schema[prop].ref) this.relationFields.push({ field: prop, ref: schema[prop].ref });
