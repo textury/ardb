@@ -30,17 +30,15 @@ export default class Schema<T = {}> {
   async create(data: T): Promise<Document & T> {
     let id = uuid();
     while (await this.findById(id)) id = uuid();
-    data[`_id`] = id;
-    data[`_v`] = 1;
-    data[`_createdAt`] = new Date().toISOString();
+    const doc = { ...data, _id: `${id}`, _v: 1, _createdAt: new Date() };
 
     const notIndexed = [];
     const tags = [];
     let txData = `${Math.random().toString().slice(-4)}`;
 
-    Object.keys(data).forEach((key) => {
-      if (this.indexedFields.includes(key)) tags.push({ [`${this.prefix}${key}`]: data[key] });
-      else notIndexed.push({ name: `${this.prefix}${key}`, value: data[key] });
+    Object.keys(doc).forEach((key) => {
+      if (this.indexedFields.includes(key)) tags.push({ [`${this.prefix}${key}`]: doc[key] });
+      else notIndexed.push({ name: `${this.prefix}${key}`, value: doc[key] });
     });
     if (notIndexed.length) txData = JSON.stringify(notIndexed);
 
@@ -54,7 +52,7 @@ export default class Schema<T = {}> {
     if (notIndexed.length) tx.addTag(`${this.prefix}notIndexedData`, '1');
     await tx.signAndPost();
 
-    return data;
+    return doc;
   }
 
   async findById(id: string, opt = { getData: false }): Promise<Document & T> {
@@ -225,16 +223,17 @@ export default class Schema<T = {}> {
 
   async populate(document: Document & T) {
     for (const relation of this.relationFields) {
-      const schema = Store.get(relation.ref);
-      if (Array.isArray(document[relation.field])) {
+      const {ref,field} = relation
+      const schema = Store.get(ref);
+      if (Array.isArray(document[field])) {
         const tmp = [];
-        for (const id of document[relation.field]) {
+        for (const id of document[field]) {
           const doc = await schema.findById(id);
           tmp.push(doc);
         }
-        document[relation.field] = tmp;
+        document[field] = tmp;
       } else {
-        document[relation.field] = await schema.findById(document[relation.field]);
+        document[field] = await schema.findById(document[field]);
       }
     }
   }
@@ -250,7 +249,7 @@ export default class Schema<T = {}> {
   private getIdTags(tags: Tag[]): string {
     return tags.find((tag) => tag.name === `${this.prefix}_id`).value as string;
   }
-  private formatFilter(filter: Document): Tag[] {
+  private formatFilter(filter: Document | QueryDocumentDTO): Tag[] {
     return Object.keys(filter).map((key) => ({
       name: `${this.prefix}${key}`,
       value: Array.isArray(filter[key]) ? filter[key] : [`${filter[key]}`],
@@ -283,11 +282,12 @@ export default class Schema<T = {}> {
   }
 
   private async createNewVersion(oldData: Document, update: T): Promise<Document & T> {
-    const updatedData: Document & T = { ...update };
-    updatedData._id = oldData._id;
-    updatedData._v = parseInt(oldData._v.toString(), 10) + 1;
-    updatedData._createdAt = new Date();
-
+    const updatedData: Document & T = {
+      ...update,
+      _id: oldData._id,
+      _v: parseInt(oldData._v.toString(), 10) + 1,
+      _createdAt: new Date(),
+    };
     const notIndexed = [];
     const tags = [];
     let txData = `${Math.random().toString().slice(-4)}`;

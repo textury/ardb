@@ -1,8 +1,8 @@
 export interface Document {
-  _id?: string;
+  _id: string;
   _txId?: string;
-  _v?: number;
-  _createdAt?: Date;
+  _v: number;
+  _createdAt: Date;
   _minedAt?: Date;
   notIndexedData?: string;
 }
