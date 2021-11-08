@@ -681,4 +681,26 @@ describe('SCHEMA', () => {
     expect(sky.saber[0].color).toEqual(saber1.color);
     expect(sky.saber[1].color).toEqual(saber2.color);
   });
+
+
+  it('returns a boolean', async () => {
+    interface TEST {
+      bool: boolean;
+    }
+    const Test = new Schema<TEST>(
+      {
+        bool: 'boolean',
+      },
+      blockweave,
+      key
+    );
+    registerSchema('Test', Test);
+    const t1 = await Test.create({ bool: false });
+    let test = await Test.findById(t1._id);
+    expect(test.bool).toEqual(false);
+
+    const t2 = await Test.create({ bool: true });
+    test = await Test.findById(t2._id);
+    expect(test.bool).toEqual(true);
+  });
 });

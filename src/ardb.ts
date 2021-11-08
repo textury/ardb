@@ -276,7 +276,12 @@ export default class Schema<T = {}> {
 
     data._v = parseInt(data._v.toString(), 10);
     Object.keys(this.schemaTypes).forEach((prop: string) => {
-      if (this.schemaTypes[prop] === 'number') if (data[prop]) data[prop] = parseInt(data[prop], 10);
+      if (this.schemaTypes[prop] === 'number') {
+        if (data[prop]) data[prop] = parseInt(data[prop], 10);
+      } else if (this.schemaTypes[prop] === 'boolean') {
+        if (data[prop] === 'false') data[prop] = false;
+        else if (data[prop] === 'true') data[prop] = true;
+      }
     });
   }
 
