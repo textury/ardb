@@ -5,7 +5,7 @@ import ArdbBlock from '../models/block';
 import ArdbTransaction from '../models/transaction';
 import { LOGS } from '../utils/log';
 
-jest.setTimeout(20000);
+jest.setTimeout(50000);
 
 describe('USING ARWEAVE', () => {
   let ardb: ArDB;
