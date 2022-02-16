@@ -154,7 +154,7 @@ export default class ArDB {
       });
     }
 
-    const $oTags = this.options.tags.length ? this.options.tags : [];
+    const $oTags = this.options.tags && this.options.tags.length ? this.options.tags : [];
     this.options.tags = [...ts, ...$oTags];
     return this;
   }
