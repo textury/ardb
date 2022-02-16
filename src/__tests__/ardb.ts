@@ -140,6 +140,31 @@ describe('USING ARWEAVE', () => {
 
     expect(txs[0].id).not.toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
   });
+
+  test('tags', async () => {
+    let txs = await ardb
+      .search('transactions')
+      .appName('SmartWeaveAction')
+      .tag('Type', 'ArweaveActivity')
+      .only('id')
+      .sort('HEIGHT_ASC')
+      .find();
+
+    let tagsTx = await ardb
+      .search('transactions')
+      .tag('Type', 'ArweaveActivity')
+      .tags([
+        {
+          name: 'App-Name',
+          values: 'SmartWeaveAction'
+        }
+      ])
+      .only('id')
+      .sort('HEIGHT_ASC')
+      .find();
+
+      expect(txs.length).toEqual(tagsTx.length)
+  })
 });
 
 describe('USING BLOCKWEAVE', () => {
@@ -275,4 +300,29 @@ describe('USING BLOCKWEAVE', () => {
 
     expect(txs[0].id).not.toBe('5AYV-RdPCoyfjeeabHVnDGvXrFNM5azcTlkNpp7RQhE');
   });
+
+  test('tags', async () => {
+    let txs = await ardb
+      .search('transactions')
+      .appName('SmartWeaveAction')
+      .tag('Type', 'ArweaveActivity')
+      .only('id')
+      .sort('HEIGHT_ASC')
+      .find();
+
+    let tagsTx = await ardb
+      .search('transactions')
+      .tag('Type', 'ArweaveActivity')
+      .tags([
+        {
+          name: 'App-Name',
+          values: 'SmartWeaveAction'
+        }
+      ])
+      .only('id')
+      .sort('HEIGHT_ASC')
+      .find();
+
+      expect(txs.length).toEqual(tagsTx.length)
+  })
 });
