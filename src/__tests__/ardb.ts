@@ -156,15 +156,15 @@ describe('USING ARWEAVE', () => {
       .tags([
         {
           name: 'App-Name',
-          values: 'SmartWeaveAction'
-        }
+          values: 'SmartWeaveAction',
+        },
       ])
       .only('id')
       .sort('HEIGHT_ASC')
       .find();
 
-      expect(txs.length).toEqual(tagsTx.length)
-  })
+    expect(txs.length).toEqual(tagsTx.length);
+  });
 });
 
 describe('USING BLOCKWEAVE', () => {
@@ -316,13 +316,13 @@ describe('USING BLOCKWEAVE', () => {
       .tags([
         {
           name: 'App-Name',
-          values: 'SmartWeaveAction'
-        }
+          values: 'SmartWeaveAction',
+        },
       ])
       .only('id')
       .sort('HEIGHT_ASC')
       .find();
 
-      expect(txs.length).toEqual(tagsTx.length)
-  })
+    expect(txs.length).toEqual(tagsTx.length);
+  });
 });
